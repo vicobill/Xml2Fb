@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Xml2FbSchemaGenerator": {
+      "commandName": "Project",
+      "commandLineArgs": "test1.xml test1.fbs",
+      "workingDirectory": "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Xml2FbSchemaGenerator\\bin"
+    }
+  }
+}
