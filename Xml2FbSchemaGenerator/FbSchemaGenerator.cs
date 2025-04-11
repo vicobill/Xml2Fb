@@ -19,15 +19,34 @@ namespace Xml2FbSchemaGenerator;
  * 
  */
 
-class FbSchemaGenerator
+public class FbSchemaGenerator
 {
-    public string GenerateSchema( string xmlPath )
+    string _xmlFile;
+    string _fbsFile;
+    public string FbsFile => _fbsFile;
+    public FbSchemaGenerator(string xmlFile)
     {
-        var xmlDocument = new XmlDocument();
-        xmlDocument.Load( xmlPath );
-        string tableName = Path.GetFileNameWithoutExtension( xmlPath );
+        _xmlFile = xmlFile;
+        _fbsFile = Path.GetFileName(xmlFile).Replace( ".xml", ".fbs" );
+    }
 
-        var rootElement = xmlDocument.DocumentElement;
+
+    public string GenerateSchema()
+    {
+        using FileStream stream = File.OpenRead( _xmlFile );
+       using var reader = XmlReader.Create( stream, new XmlReaderSettings
+        {
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true,
+            IgnoreWhitespace = true,
+            Async = true
+
+        } );
+        XmlDocument doc = new XmlDocument();
+        doc.Load( reader );
+        string tableName = Path.GetFileNameWithoutExtension( _xmlFile );
+
+        var rootElement = doc.DocumentElement;
         var schemaBuilder = new SchemaBuilder();
 
         ProcessElement( rootElement, schemaBuilder, rootElement.Name, null );
