@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Xml2FbSchemaGenerator\Xml2FbSchemaGenerator.csproj" />
+    <ProjectReference Include="..\Xml2FbSchemaGenerator\Xml2Fb.SchemaGenerator.csproj" />
   </ItemGroup>
 
   <ItemGroup>

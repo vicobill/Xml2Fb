@@ -1,13 +1,8 @@
-using Google.FlatBuffers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
-using System.Xml.Linq;
+using Xml2Fb.Shared;
+using Xml2Fb.Shared.FbDef;
 
-namespace Xml2FbSchemaGenerator;
+namespace Xml2Fb.SchemaGenerator;
 
 /**
  * XML根节点作为命名空间；
@@ -24,17 +19,20 @@ public class FbSchemaGenerator
     string _xmlFile;
     string _fbsFile;
     public string FbsFile => _fbsFile;
-    public FbSchemaGenerator(string xmlFile)
+    public string FbsTableName { get; private set; }
+
+    public FbSchemaGenerator( string xmlFile )
     {
         _xmlFile = xmlFile;
-        _fbsFile = Path.GetFileName(xmlFile).Replace( ".xml", ".fbs" );
+        FbsTableName = Path.GetFileNameWithoutExtension(_xmlFile);
+        _fbsFile = Path.GetFileName( xmlFile ).Replace( ".xml", ".fbs" );
     }
 
 
     public string GenerateSchema()
     {
         using FileStream stream = File.OpenRead( _xmlFile );
-       using var reader = XmlReader.Create( stream, new XmlReaderSettings
+        using var reader = XmlReader.Create( stream, new XmlReaderSettings
         {
             IgnoreComments = true,
             IgnoreProcessingInstructions = true,
@@ -48,18 +46,18 @@ public class FbSchemaGenerator
 
         var rootElement = doc.DocumentElement;
         var schemaBuilder = new SchemaBuilder();
-
-        ProcessElement( rootElement, schemaBuilder, rootElement.Name, null );
+        schemaBuilder.RootType = FbsTableName;
+        ProcessElement( rootElement, schemaBuilder, FbsTableName, null );
 
         return schemaBuilder.ToString();
     }
 
 
 
-    void ProcessElement( XmlElement node, SchemaBuilder builder, string typeName, TableDefinition parentTable )
+    void ProcessElement( XmlNode node, SchemaBuilder builder, string typeName, TableDefinition parentTable )
     {
         string tableName = typeName.Capitalize();
-        if (parentTable != null)
+        if (parentTable != null /*&& parentTable.Name != FbsTableName*/)
         {
             tableName = $"{parentTable.Name}_{tableName}";
         }
@@ -69,10 +67,12 @@ public class FbSchemaGenerator
             table = new TableDefinition( tableName );
         }
 
+
+
         // 处理自身节点属性，作为FbTable的字段形式
         foreach (XmlAttribute attr in node.Attributes)
         {
-            AddField( attr.Name, GetFlatbufferType( attr.Value ), table );
+            table.AddField( attr.Name, FbHelper.GetFbTypeFromXmlValue( attr.Value ) );
         }
 
 
@@ -80,14 +80,21 @@ public class FbSchemaGenerator
         // 处理子节点，按节点名称分组
         // 每个组，作为FbTable的每个数组字段
 
+        if ( node.ChildNodes.Count == 1 && node.FirstChild.NodeType == XmlNodeType.Text) // <id> 1234 </id>
+        {
+            table.AddField( $"{typeName}_value", FbHelper.GetFbTypeFromXmlValue( node.FirstChild.Value ) );
+            builder.AddTable( table );
+            return;
+        }
+
 
         // 节点名称-节点列表
-        Dictionary<string, List<XmlElement>> xmlElemGroups = new Dictionary<string, List<XmlElement>>();
-        foreach (XmlElement child in node.ChildNodes)
+        Dictionary<string, List<XmlNode>> xmlElemGroups = new Dictionary<string, List<XmlNode>>();
+        foreach (XmlNode child in node.ChildNodes)
         {
             if (!xmlElemGroups.TryGetValue( child.Name, out var xmlElemList ))
             {
-                xmlElemList = new List<XmlElement>();
+                xmlElemList = new List<XmlNode>();
                 xmlElemList.Add( child );
                 xmlElemGroups[child.Name] = xmlElemList;
             }
@@ -101,17 +108,22 @@ public class FbSchemaGenerator
         foreach (var kv in xmlElemGroups)
         {
             string xmlNodeName = kv.Key;
-            if (kv.Value.Count > 0)
+            List<XmlNode> xmlNodes = kv.Value;
+            string subTableName = /* tableName == FbsTableName ? $"{xmlNodeName.Capitalize()}" :*/ $"{tableName}_{xmlNodeName.Capitalize()}";
+            if (xmlNodes.Count > 1)
             {
-                string subTableName = $"{tableName}_{xmlNodeName.Capitalize()}";
                 table.AddVectorField( xmlNodeName, subTableName );
+            }
+            else
+            {
+                table.AddField( xmlNodeName, subTableName );
             }
         }
 
         /* 递归处理子节点 */
         foreach (var kv in xmlElemGroups)
         {
-            foreach (XmlElement subNode in kv.Value)
+            foreach (XmlNode subNode in kv.Value)
             {
                 ProcessElement( subNode, builder, kv.Key, table );
             }
@@ -121,31 +133,5 @@ public class FbSchemaGenerator
 
         builder.AddTable( table );
     }
-
-
-    void AddField( string name, string type, TableDefinition table )
-    {
-
-        table.AddField( name, type );
-    }
-
-    internal static string GetFlatbufferType( string xmlValue )
-    {
-        if (uint.TryParse( xmlValue, out _ ))
-            return "uint";
-        if (int.TryParse( xmlValue, out _ ))
-            return "int";
-        if (float.TryParse( xmlValue, out _ ))
-            return "float";
-        if (bool.TryParse( xmlValue, out _ ))
-            return "bool";
-        return "string";
-    }
-
-    internal static bool IsPrimitiveType( string typeName )
-    {
-        return typeName == "string" || typeName == "int" ||
-            typeName == "uint" || typeName == "float" ||
-            typeName == "bool";
-    }
+     
 }

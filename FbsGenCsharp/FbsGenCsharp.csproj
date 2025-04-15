@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.FlatBuffers" Version="25.2.10" />
+    <ProjectReference Include="..\Xml2Fb.Shared\Xml2Fb.Shared.csproj" />
   </ItemGroup>
 
 </Project>

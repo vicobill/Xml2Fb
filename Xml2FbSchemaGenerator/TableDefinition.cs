@@ -1,12 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Metadata;
 using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
+using Xml2Fb.Shared;
+using Xml2Fb.Shared.FbDef;
+using Xml2Fb.Shared.Passes;
 
-namespace Xml2FbSchemaGenerator;
+namespace Xml2Fb.SchemaGenerator;
 
 public enum EFbScalarType
 {
@@ -62,7 +60,8 @@ internal class VectorFieldDefinition
         if (numElements.HasValue)
         {
             return $"{name} : [{type} : {numElements}];";
-        }else
+        }
+        else
         {
             return $"{name} : [{type}];";
         }
@@ -73,13 +72,13 @@ internal class VectorFieldDefinition
 public class StructDefinition
 {
     public string Name { get; private set; }
-    public StructDefinition(string name)
+    public StructDefinition( string name )
     {
         Name = name;
     }
     // 结构体定义实现
     public Dictionary<string, string> fields = new Dictionary<string, string>();
-    public StructDefinition AddField( string fieldName,string fieldType )
+    public StructDefinition AddField( string fieldName, string fieldType )
     {
         fields[fieldName] = fieldType;
         return this;
@@ -96,7 +95,7 @@ public class StructDefinition
         sb.AppendLine( "}" );
 
         return sb.ToString();
-            
+
     }
 }
 
@@ -124,21 +123,21 @@ public class TableDefinition
     /// <summary>
     /// 各个字段
     /// </summary>
-    public Dictionary<string,FieldDefinition> Fields { get; } = new();
+    public Dictionary<string, FieldDefinition> Fields { get; } = new();
 
     public TableDefinition( string name )
     {
-        Name = name.Capitalize();
+        Name = name.Codize().Capitalize();
     }
 
     public void AddField( string name, string type, FieldOption option = FieldOption.None )
     {
-        Fields[name] = new FieldDefinition( name, type, option ) ;
+        Fields[name.LowerSnakeCase()] = new FieldDefinition( name, type, option );
     }
 
     internal void Define( SchemaBuilder builder )
     {
-        builder.AppendLine( $"table {Name} {{" );
+        builder.AppendLine( $"table {Name.Codize()} {{" );
         foreach (var kv in Fields)
         {
             builder.AppendLine( kv.Value.ToString() );
@@ -146,29 +145,29 @@ public class TableDefinition
         builder.AppendLine( "}" );
     }
 
-    public static TableDefinition FromSelfCloseNode(XmlElement node )
+    public static TableDefinition FromSelfCloseNode( XmlElement node )
     {
         TableDefinition table = new TableDefinition( node.Name );
         foreach (XmlAttribute attrib in node.Attributes)
         {
-            table.AddField( attrib.Name, FbSchemaGenerator.GetFlatbufferType( attrib.Value ) );
+            table.AddField( attrib.Name, FbHelper.GetFbTypeFromXmlValue( attrib.Value ) );
         }
         return table;
     }
 
-  
+
 
     /// <summary>
     /// 添加数组/列表字段
     /// </summary>
     /// <param name="xmlNodeName"></param>
-    public void AddVectorField(string xmlNodeName,string subTableName)
+    public void AddVectorField( string xmlNodeName, string subTableName )
     {
         string fieldName = GetVectorFieldName( xmlNodeName );
         string typeName = GetVectorTypeName( subTableName );
         Fields[fieldName] = new FieldDefinition( fieldName, typeName );
     }
-    
+
     internal static string GetVectorTypeName( string scalarType ) => $"[{scalarType.Capitalize()}]";
     internal static string GetVectorFieldName( string tableName ) => $"{tableName}s";
 }
@@ -176,13 +175,16 @@ public class TableDefinition
 
 public class FieldDefinition
 {
-    public FieldDefinition(string name, string type )
+    public FieldDefinition( string name, string type )
     {
-        Name = name;   Type = type;
+        Name = name;
+        Type = type;
     }
-    public FieldDefinition(string name, string type, FieldOption opt )
+    public FieldDefinition( string name, string type, FieldOption opt )
     {
-        Name = name; Type = type;Option= opt;
+        Name = name;
+        Type = type;
+        Option = opt;
     }
 
     public FieldOption Option { get; set; }
@@ -198,7 +200,11 @@ public class FieldDefinition
 
     public override string ToString()
     {
-        return $"{Name.LowerSnakeCase()} : {Type};";
+        var pass1 = new CodeCaseName { Name = Name, ForFieldName = true };
+        pass1.Pass();
+        var pass2 = new CsharpAliasName { Name = pass1.Result };
+        pass2.Pass();
+        return $"{pass2.Result} : {Type.Codize()};";
     }
 
 
