@@ -264,6 +264,7 @@ public class FbSchemaGenerator
                     switch (lower)
                     {
                         case "item/starttime":
+                        case "item/endtime":
                             return true;
                     }
                 }
