@@ -135,12 +135,31 @@ public class TableDefinition
     {
         //Fields[name.LowerSnakeCase()] = new FieldDefinition( name, type, option );
         string key = name.Codize().LowerCapital();
-        if (Fields.TryGetValue( key, out var table ))
+        if (Fields.TryGetValue( key, out FieldDefinition? field ))
         {
-            if (table.Type == "string" ||
-                ( FieldDefinition.IsVectorType( table.Type ) && !FieldDefinition.IsVectorType( type ) ))
+            if (field.Type == "string" ||
+                ( FieldDefinition.IsVectorType( field.Type ) && !FieldDefinition.IsVectorType( type ) ))
                 return;
 
+            if (type == "string" && field.Type != "string")
+            {
+                field.Type = type;
+                return;
+            }
+            
+            if (FieldDefinition.IsVectorType(type) && !FieldDefinition.IsVectorType( field.Type ))
+            {
+                field.Type = type;
+                return;
+            }
+
+            if (type == "float" && field.Type != "float")
+            {
+                field.Type = type;
+                return;
+            }
+                
+            
         }
         else
         {

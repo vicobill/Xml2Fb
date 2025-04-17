@@ -71,8 +71,9 @@ namespace Xml2Fb.Shared.FbDef
 
         public static string GetFbTypeFromXmlValue( string xmlValue, string xmlNodeName )
         {
-            bool hasSep = ( xmlValue.IndexOfAny( new char[] { ',', ';', '|' } ) ) != -1;
-
+            bool hasSep = ( xmlValue.IndexOfAny( new char[] { ',', ';', '|',':' } ) ) != -1;
+            if (hasSep)
+                return "string";
 
             switch (xmlNodeName.ToLower())
             {
