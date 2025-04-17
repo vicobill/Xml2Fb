@@ -28,7 +28,7 @@ IEnumerable<string>? xmlFiles = Directory.EnumerateFiles( conf.GetXmlDir(), "*.x
 
 foreach (var xmlFile in xmlFiles)
 {
-    //string xmlFile = $"{conf.GetXmlDir()}/AudioConfig.xml";
+    //string xmlFile = $"{conf.GetXmlDir()}/DBrushConfig.xml";
     string fileName = Path.GetFileNameWithoutExtension( xmlFile );
     string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
     string fbsFile = Path.Combine( conf.GetFbsDir(), $"{fileName}.fbs" );

@@ -21,7 +21,7 @@ namespace Xml2Fb.Shared.Passes
             Result = Name;
             if (ForFieldName)
             {
-                Result = Name.Codize().LowerCapital();
+                Result = Name.ToFieldName();
             }
             else if (ForTableName)
             {

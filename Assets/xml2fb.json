@@ -1,0 +1,23 @@
+
+{
+    "workdir":"E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets",
+    "xmldir":"xml",
+    "fbsdir":"gen/fbs",
+    "fbindir": "gen/bytes",
+    "jsondir":"gen/json",
+    "fbsincdir":"fbs-inc",
+    "csharpdir":"gen/cs",
+    "flatc":"bin/flatc.exe",
+
+    "说明":[
+        "workdir: 是工作目录,xmldir,fbsdir,fbindir,jsondir都相对于此目录",
+        "   xmldir: 球球XML配置文件目录",
+        "   fbsdir: 生成的FlatBuffers Schema 目录",
+        "   fbindir: 生成的FlatBuffers 数据二进制目录，是XML数据的转储",
+        "   jsondir: 中间XML转JSON的文件，供比对参考",
+        "   fbsincdir: FlatBuffers 包含文件目录",
+        "flatc: flatc.exe"
+    ]
+
+
+}

@@ -1080,7 +1080,8 @@ namespace Newtonsoft.Json.Converters
             {
                 ret = XmlConvert.DecodeName(node.LocalName)!;
             }
-            ret = StringUtils.ToCamelCase( ret );
+
+            ret = StringUtils.ToCamelCase( ret ).Replace('-','_');
             ret = CSharpKeywordAlias.Alias( ret );
             return ret;
         }
@@ -1142,7 +1143,8 @@ namespace Newtonsoft.Json.Converters
         }
         private bool IsNodeAsArray(IXmlNode node)
         {
-            return IsNodeAsArray( $"{node.ParentNode.LocalName}/{node.LocalName}" );
+            var x = node.WrappedNode as XmlNode;
+            return IsNodeAsArray($"{node.ParentNode.LocalName}/{node.LocalName}" );
         }
         protected virtual bool IsNodeAsArray(string nodeNamePath)
         {
@@ -1359,7 +1361,15 @@ namespace Newtonsoft.Json.Converters
                             }
                             else
                             {
-                                writer.WriteValue(string.Empty);
+                                if (node.Value == null)
+                                {
+                                    writer.WriteNull();
+                                }
+                                else
+                                {
+                                    writer.WriteValue( string.Empty );
+                                }
+                                
                             }
                         }
                         else

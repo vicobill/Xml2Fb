@@ -24,12 +24,13 @@ public class FbSchemaGenerator
     public FbSchemaGenerator( string xmlFile )
     {
         _xmlFile = xmlFile;
-        FbsTableName = Path.GetFileNameWithoutExtension(_xmlFile);
+        FbsTableName = Path.GetFileNameWithoutExtension( _xmlFile );
         _fbsFile = Path.GetFileName( xmlFile ).Replace( ".xml", ".fbs" );
+        CurrentXmlDocName = FbsTableName;
     }
 
 
-    public string GenerateSchema(XmlDocument doc)
+    public string GenerateSchema( XmlDocument doc )
     {
         string tableName = Path.GetFileNameWithoutExtension( _xmlFile );
 
@@ -69,7 +70,7 @@ public class FbSchemaGenerator
         // 处理子节点，按节点名称分组
         // 每个组，作为FbTable的每个数组字段
 
-        if ( node.ChildNodes.Count == 1 && node.FirstChild.NodeType == XmlNodeType.Text) // <id> 1234 </id>
+        if (node.ChildNodes.Count == 1 && node.FirstChild.NodeType == XmlNodeType.Text) // <id> 1234 </id>
         {
             table.AddField( $"{typeName}_value", FbHelper.GetFbTypeFromXmlValue( node.FirstChild.Value, node.FirstChild.Name ) );
             builder.AddTable( table );
@@ -105,7 +106,7 @@ public class FbSchemaGenerator
             }
             else
             {
-                if (IsNodeAsArray( xmlNodes.First()))
+                if (IsNodeAsArray( xmlNodes.First() ))
                 {
                     table.AddVectorField( xmlNodeName, subTableName );
                 }
@@ -130,27 +131,99 @@ public class FbSchemaGenerator
         builder.AddTable( table );
     }
 
-    static bool IsNodeAsArray(XmlNode node)
+    bool IsNodeAsArray( XmlNode node )
     {
         string path = $"{node.ParentNode.LocalName}/{node.LocalName}";
+
         return IsNodeAsArray( path );
     }
-
-    public static bool IsNodeAsArray( string path)
+    public static string CurrentXmlDocName = "";
+    public static bool IsNodeAsArray( string path )
     {
+        string domain = CurrentXmlDocName.ToLower();
         string lower = path.ToLower();
         if (lower.EndsWith( "item" ))
             return true;
-        /* ActivityConfig 特殊处理 */
-        switch (lower)
+
+        switch (domain)
         {
-            case "boxitem/rare": // ActivityConfig/mysterybox/boxitem/rare
-            case "previewgroup/preview":// ActivityConfig/shopactivititys/activity/
-            case "time/previewgroup":
-            case "item/skin":
-            case "item/rewards":
-                return true;
+            case "activityconfig":
+                {
+                    switch (lower)
+                    {
+                        case "boxitem/rare":
+                        case "previewgroup/preview":
+                        case "time/previewgroup":
+                            return true;
+                    }
+                }
+                break;
+            case "artseasonconfig":
+                {
+                    switch (lower)
+                    {
+                        case "previewgroup/preview":
+                        case "item/skin":
+                        case "item/rewards":
+                            return true;
+                    }
+                }
+                break;
+            case "battlepassconfig":
+                {
+                    switch (lower)
+                    {
+                        case "seasonfloortex/floor":
+                        case "seasonfloortex/vipfloor":
+                        case "seasonfloortex/supervipfloor":
+                            return true;
+                    }
+                }
+                break;
+            case "bestballconfig":
+                {
+                    switch (lower)
+                    {
+                        case "guide/phasereward":
+                        case "guide/achevement":
+                        case "act/rank":
+                            return true;
+                    }
+                }
+                break;
+            case "customkeyconfig":
+                {
+                    switch (lower)
+                    {
+                        case "macro/condition":
+                            return true;
+                    }
+                }
+                break;
+            case "dbrushconfig":
+                {
+                    switch (lower)
+                    {
+
+                        case "toptag/activity":
+                        case "mainbanner/banner":
+                            return true;
+                    }
+                }
+                break;
+            case "gameplaysettingconfig":
+                {
+                    switch (lower)
+                    {
+                        case "item/level":
+                            return true;
+                    }
+                }
+                break;
+            default:
+                break;
         }
+
 
         return false;
     }

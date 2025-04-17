@@ -1,0 +1,8 @@
+struct DateTime {
+    year:uint;
+    month:byte;
+    day:byte;
+    hour: byte;
+    minute: byte;
+    second: byte;
+}

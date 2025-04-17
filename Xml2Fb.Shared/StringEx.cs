@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -112,7 +113,18 @@ namespace Xml2Fb.Shared
         }
 
         public static string ToFieldName( this string s )
-            => s.Codize().LowerSnakeCase();
+        {
+            string ret = s.Replace( '-', '_' );
+            if (ret.IndexOf( '_' ) == -1)
+            {
+                ret = StringUtils.ToCamelCase( ret );
+                return ret;
+            }
+
+            ret = ret.LowerCapital();
+            return ret;
+        }
+            
 
         public static string ToTableName( this string s )
             => s.Codize().Capitalize();

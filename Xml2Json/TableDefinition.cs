@@ -134,7 +134,7 @@ public class TableDefinition
     public void AddField( string name, string type, FieldOption option = FieldOption.None )
     {
         //Fields[name.LowerSnakeCase()] = new FieldDefinition( name, type, option );
-        string key = name.Codize().LowerCapital();
+        string key = name.ToFieldName();
         if (Fields.TryGetValue( key, out FieldDefinition? field ))
         {
             if (field.Type == "string" ||
@@ -158,7 +158,13 @@ public class TableDefinition
                 field.Type = type;
                 return;
             }
-                
+
+            if (type == "int" && field.Type == "uint")
+            {
+                field.Type = type;
+                return;
+            }
+
             
         }
         else
