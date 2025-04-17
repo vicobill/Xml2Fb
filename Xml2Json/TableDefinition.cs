@@ -215,7 +215,7 @@ public class TableDefinition
     }
 
     internal static string GetVectorTypeName( string scalarType ) => $"[{scalarType.Capitalize()}]";
-    internal static string GetVectorFieldName( string tableName ) => $"{tableName}";
+    internal static string GetVectorFieldName( string tableName ) => $"{tableName}s";
 }
 
 
@@ -246,9 +246,8 @@ public class FieldDefinition
 
     public override string ToString()
     {
-        var pass1 = new CodeCaseName { Name = Name, ForFieldName = true };
-        pass1.Pass();
-        var pass2 = new CsharpAliasName { Name = pass1.Result };
+        string name = Name.ToFieldName();
+        var pass2 = new CsharpAliasName { Name = name };
         pass2.Pass();
         return $"{pass2.Result} : {Type.Codize()};";
     }

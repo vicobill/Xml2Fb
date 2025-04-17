@@ -1082,7 +1082,7 @@ namespace Newtonsoft.Json.Converters
             }
 
             ret = StringUtils.ToCamelCase( ret ).Replace('-','_');
-            ret = CSharpKeywordAlias.Alias( ret );
+            
             return ret;
         }
 
@@ -1097,7 +1097,7 @@ namespace Newtonsoft.Json.Converters
                     }
                     else
                     {
-                        return "@" + ResolveFullName(node, manager);
+                        return "@" + ResolveFullName(node, manager).CsAlias();
                     }
                 case XmlNodeType.CDATA:
                     return CDataName;
@@ -1110,7 +1110,7 @@ namespace Newtonsoft.Json.Converters
                     }
                     else
                     {
-                        return ResolveFullName(node, manager);
+                        return ResolveFullName(node, manager).CsAlias();
                     }
                 case XmlNodeType.ProcessingInstruction:
                     return "?" + ResolveFullName(node, manager);
@@ -1268,7 +1268,7 @@ namespace Newtonsoft.Json.Converters
             {
                 if (writePropertyName)
                 {
-                    writer.WritePropertyName(elementNames);
+                    writer.WritePropertyName($"{elementNames}s");
                 }
 
                 writer.WriteStartArray();
@@ -1294,7 +1294,7 @@ namespace Newtonsoft.Json.Converters
             {
                 if (writePropertyName)
                 {
-                    writer.WritePropertyName(elementNames);
+                    writer.WritePropertyName($"{elementNames}s");
                 }
 
                 writer.WriteStartArray();

@@ -36,5 +36,10 @@ namespace Newtonsoft.Json.Utilities
             }
             return name;
         }
+
+        public static string CsAlias(this string s)
+        {
+            return Alias(s);
+        }
     }
 }
