@@ -1,6 +1,8 @@
 import os
 import sys
 import shutil
+import multiprocessing as mp
+from tqdm import tqdm
 
 CWD = os.getcwd()
 
@@ -11,11 +13,39 @@ def json_to_bin(fileName):
     cmd=f"{flatc()} -o gen/bytes -I fbs-inc -b gen/fbs/{fileName}.fbs gen/json/{fileName}.json"
     os.system(cmd)
 
-# for root, dirs, files in os.walk(f"{CWD}/gen/fbs"):
-#     for file in files:
-#         name = os.path.basename(file).removesuffix(".fbs")
-#         print(f"处理文件 \t\t{name}")
-#         json_to_bin(name)
+
+def process_data(file):
+    name = os.path.basename(file).removesuffix(".fbs")
+    # print(f"处理文件 \t\t{name}")
+
+    json_to_bin(name)
+
+def process_result(result):
+    print(result)
+
+if __name__ == '__main__':
+    mp.freeze_support()
+    results = []
+    data_list=[]
+    for root, dirs, files in os.walk(f"{CWD}/gen/fbs"):
+        for file in files:
+            data_list.append(file)
+
+    pool = mp.Pool(8)
+    with tqdm(total=len(data_list)) as pbar:
+        for data in data_list:
+            result = pool.apply_async(process_data, args=(data,))
+            result.get()  # 等待任务执行完成
+            results.append(result)
+            pbar.update(1)  # 更新进度条
+    # 关闭进程池
+    pool.close()
+    pool.join()
+    # 处理结果
+    # for result in results:
+    #     process_result(result)
+
+
 
 # json_to_bin("AccomplishmentConfig")
 # json_to_bin("ActivityConfig")
@@ -53,28 +83,28 @@ def json_to_bin(fileName):
 # json_to_bin("CustomKeyConfig")
 # json_to_bin("CustomRoomConfig")
 # json_to_bin("DBrushConfig")
-json_to_bin("DirectBuyShopConfig")
-json_to_bin("DiscountConfig")
-json_to_bin("DivinationConfig")
-json_to_bin("DrawSkinConfig")
-json_to_bin("ErrMsgConfig")
-json_to_bin("ExamConfig")
-json_to_bin("ExchangePresentsConfig")
-json_to_bin("ExchangeShopConfig")
-json_to_bin("FashionConfig")
-json_to_bin("FragmentsShopConfig")
-json_to_bin("FreeWorldConfig")
-json_to_bin("GameConfig")
-json_to_bin("GameNotesConfig")
-json_to_bin("GamePlaySettingConfig")
-json_to_bin("GameSettingConfig")
-json_to_bin("GiftConfig")
-json_to_bin("GiftUnsafeConfig")
-json_to_bin("GoTopConfig")
-json_to_bin("GraffitiConfig")
-json_to_bin("GrandprixConfig")
-json_to_bin("GuanZhanConfig")
-json_to_bin("HallOfFameConfig")
+# json_to_bin("DirectBuyShopConfig")
+# json_to_bin("DiscountConfig")
+# json_to_bin("DivinationConfig")
+# json_to_bin("DrawSkinConfig")
+# json_to_bin("ErrMsgConfig")
+# json_to_bin("ExamConfig")
+# json_to_bin("ExchangePresentsConfig")
+# json_to_bin("ExchangeShopConfig")
+# json_to_bin("FashionConfig")
+# json_to_bin("FragmentsShopConfig")
+# json_to_bin("FreeWorldConfig")
+# json_to_bin("GameConfig")
+# json_to_bin("GameNotesConfig")
+# json_to_bin("GamePlaySettingConfig")
+# json_to_bin("GameSettingConfig")
+# json_to_bin("GiftConfig")
+# json_to_bin("GiftUnsafeConfig")
+# json_to_bin("GoTopConfig")
+# json_to_bin("GraffitiConfig")
+# json_to_bin("GrandprixConfig")
+# json_to_bin("GuanZhanConfig")
+# json_to_bin("HallOfFameConfig")
 # json_to_bin("HandSpeedConfig")
 # json_to_bin("HelloKittyBPConfig")
 # json_to_bin("HelloKittyConfig")

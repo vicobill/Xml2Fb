@@ -247,6 +247,7 @@ public class FbSchemaGenerator
                     switch (lower)
                     {
                         case "activity/items":
+                        case "activity/showitems":
                             return true;
                     }
                 }break;
@@ -258,6 +259,16 @@ public class FbSchemaGenerator
                             return true;
                     }
                 }break;
+            case "xml2excelforclient":
+                {
+                    switch (lower)
+                    {
+                        case "item/starttime":
+                            return true;
+                    }
+                }
+                break;
+
             default:
                 break;
         }
