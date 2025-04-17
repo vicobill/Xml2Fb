@@ -24,7 +24,7 @@ namespace Xml2Fb.Shared.FbDef
             public readonly EFbScalarType type;
             public readonly string typeName;
             public readonly string? aliaTypeName;
-            public FbScalarTypeAndName(EFbScalarType type, string typeName,string? alisTypeName)
+            public FbScalarTypeAndName( EFbScalarType type, string typeName, string? alisTypeName )
             {
                 this.type = type;
                 this.typeName = typeName;
@@ -48,18 +48,18 @@ namespace Xml2Fb.Shared.FbDef
             new FbScalarTypeAndName(EFbScalarType.FBT_String,"string",null)
         };
 
-        public static EFbScalarType Get_EFbScalarType(string type)
+        public static EFbScalarType Get_EFbScalarType( string type )
         {
-            foreach(var e in s_fbScalarTypeAndNames)
+            foreach (var e in s_fbScalarTypeAndNames)
             {
                 if (type == e.typeName || type == e.aliaTypeName)
                     return e.type;
             }
             return EFbScalarType.None;
         }
-        public static string? Get_FbScalarTypeName(EFbScalarType scalarType )
+        public static string? Get_FbScalarTypeName( EFbScalarType scalarType )
         {
-            foreach(var e in s_fbScalarTypeAndNames)
+            foreach (var e in s_fbScalarTypeAndNames)
             {
                 if (scalarType == e.type)
                     return e.typeName;
@@ -69,19 +69,30 @@ namespace Xml2Fb.Shared.FbDef
 
 
 
-        public static string GetFbTypeFromXmlValue( string xmlValue )
+        public static string GetFbTypeFromXmlValue( string xmlValue, string xmlNodeName )
         {
+            bool hasSep = ( xmlValue.IndexOfAny( new char[] { ',', ';', '|' } ) ) != -1;
+
+
+            switch (xmlNodeName.ToLower())
+            {
+                case "name":
+                case "describe":
+                case "desc":
+                case "directto":
+                    return "string";
+            }
+
+
             if (uint.TryParse( xmlValue, out _ ))
             {
-                if (xmlValue.Contains( ',' ))
+                if (hasSep)
                     return "string";
                 return "uint";
             }
 
             if (int.TryParse( xmlValue, out _ ))
             {
-                if (xmlValue.Contains( ',' ))
-                    return "string";
                 return "int";
             }
 
@@ -94,7 +105,7 @@ namespace Xml2Fb.Shared.FbDef
             return "string";
         }
 
-        public static bool IsFbScalarType(string typeName)
+        public static bool IsFbScalarType( string typeName )
         {
             return typeName == "string" || typeName == "int" ||
             typeName == "uint" || typeName == "float" ||

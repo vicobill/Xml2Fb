@@ -116,7 +116,7 @@ namespace Xml2Fb.Xml2FbData
         {
             var field = new FbFieldDef(xmlAttribute.Name);
             field.FieldValue = xmlAttribute.Value;
-            field.FieldType = FbHelper.GetFbTypeFromXmlValue( xmlAttribute.Value );
+            field.FieldType = FbHelper.GetFbTypeFromXmlValue( xmlAttribute.Value,xmlAttribute.Name );
             return field;
         }
     }

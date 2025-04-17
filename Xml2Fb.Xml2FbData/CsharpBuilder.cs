@@ -61,7 +61,7 @@ public static class MyConfigSerializer {
             GenWriteToFile();
             GenCsharpFooter();
         }
-        
+        Stack<string> _tableVarNameStack = new();
         
         public void BeginTable( string xmlNodeName,string tableName )
         {
@@ -69,6 +69,7 @@ public static class MyConfigSerializer {
             _tableNodeNameStack.Push( _curTableName );
             string type = $"{FbHelper.ObjectiveTableName( _curTableName )}";
             string varname = xmlNodeName.ToFieldName();
+            _tableVarNameStack.Push( varname );
             _stringBuilder.AppendLine( $"{Indent(1)}{type} {varname} = new();" );
         }
 
@@ -138,14 +139,15 @@ public static class MyConfigSerializer {
         List<string> strings = new List<string>();
         public void AddField(string xmlAttrName, string xmlAttrVal )
         {
-            string type = FbHelper.GetFbTypeFromXmlValue( xmlAttrVal );
-
-            string varname = _curTableName == RootTableName ? "config" : $"{_curTableName.ToFieldName()}";
+            string type = FbHelper.GetFbTypeFromXmlValue( xmlAttrVal,xmlAttrName );
+            _tableVarNameStack.TryPeek(out var popvar);
+            string varname = _curTableName == RootTableName ? "config" : $"{popvar.ToFieldName()}";
             string fieldname = xmlAttrName.UpperCamelCase();
             string fieldvalue = xmlAttrVal;
             if(type == "string")
             {
-                _stringBuilder.AppendLine( $"{Indent(1)}{varname}.{fieldname} = \"\"\"{fieldvalue}\"\"\";" );
+                string val = string.IsNullOrEmpty( fieldvalue ) ? "\"\"" : $"\"\"\"\n{fieldvalue}\n\"\"\"";
+                _stringBuilder.AppendLine( $"{Indent(1)}{varname}.{fieldname} = {val};" );
             }
             else
             {

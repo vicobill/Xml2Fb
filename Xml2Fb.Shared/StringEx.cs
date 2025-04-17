@@ -23,10 +23,22 @@ namespace Xml2Fb.Shared
 
         public static string Capitalize( this string s )
         {
+            if (char.IsUpper( s[0] ))
+                return s;
             Span<char> chars = s.ToCharArray();
 
             chars[0] = UpperChar( chars[0] );
             return chars.ToString();
+        }
+
+        public static string LowerCapital(this string s )
+        {
+            if (!char.IsUpper( s[0] ))
+                return s;
+
+            Span<char> span = s.ToCharArray();
+            span[0] = char.ToLower( span[0] );
+            return span.ToString();
         }
 
         public static string Codize( this string s )
@@ -126,7 +138,12 @@ namespace Xml2Fb.Shared
                 {
                     char c = char.ToLower( words[i][0] );
                     sb.Append( c );
-                    sb.Append( words[i][1..( words.Length - 1 )] );
+                    sb.Append( words[i][1..( words[i].Length )] );
+                    continue;
+                }
+                if (int.TryParse( words[i],out int x ))
+                {
+                    sb.Append( '_' ).Append( words[i] );
                     continue;
                 }
                 sb.Append( words[i].Capitalize() );

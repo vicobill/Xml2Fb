@@ -11,11 +11,11 @@ using Xml2Fb.Xml2FbData;
  */
 
 string xmlFile = "E:\\project\\my-tools\\FlatBufferTool-master\\XmlToFlatbuffer\\XML\\LanguageConfig.xml";
-
+string targetDir = "E:\\project\\my-tools\\FlatBufferTool-master\\XmlToFlatbuffer\\cs\\serializers";
 
 string s = new Xml2FbDataGenerator( xmlFile )
     .Generate();
-File.WriteAllText( "language_serializer.cs", s );
+File.WriteAllText( $"{targetDir}/language_serializer.cs", s );
 
 
 

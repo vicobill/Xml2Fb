@@ -17,10 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Xml2FbSchemaGenerator\Xml2Fb.SchemaGenerator.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Using Include="NUnit.Framework" />
   </ItemGroup>
 

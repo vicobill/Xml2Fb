@@ -29,19 +29,19 @@ public class FbSchemaGenerator
     }
 
 
-    public string GenerateSchema()
+    public string GenerateSchema(XmlDocument doc)
     {
-        using FileStream stream = File.OpenRead( _xmlFile );
-        using var reader = XmlReader.Create( stream, new XmlReaderSettings
-        {
-            IgnoreComments = true,
-            IgnoreProcessingInstructions = true,
-            IgnoreWhitespace = true,
-            Async = true
+        //using FileStream stream = File.OpenRead( _xmlFile );
+        //using var reader = XmlReader.Create( stream, new XmlReaderSettings
+        //{
+        //    IgnoreComments = true,
+        //    IgnoreProcessingInstructions = true,
+        //    IgnoreWhitespace = true,
+        //    Async = true
 
-        } );
-        XmlDocument doc = new XmlDocument();
-        doc.Load( reader );
+        //} );
+        //XmlDocument doc = new XmlDocument();
+        //doc.Load( reader );
         string tableName = Path.GetFileNameWithoutExtension( _xmlFile );
 
         var rootElement = doc.DocumentElement;

@@ -169,7 +169,7 @@ public class TableDefinition
     }
 
     internal static string GetVectorTypeName( string scalarType ) => $"[{scalarType.Capitalize()}]";
-    internal static string GetVectorFieldName( string tableName ) => $"{tableName}s";
+    internal static string GetVectorFieldName( string tableName ) => $"{tableName}";
 }
 
 
