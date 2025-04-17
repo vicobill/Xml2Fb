@@ -214,7 +214,12 @@ public class TableDefinition
         }
     }
 
-    internal static string GetVectorTypeName( string scalarType ) => $"[{scalarType.Capitalize()}]";
+    internal static string GetVectorTypeName( string scalarType )
+    {
+        if (FbHelper.IsFbScalarType( scalarType ))
+            return $"[{scalarType}]";
+        return $"[{scalarType.Capitalize()}]";
+    }
     internal static string GetVectorFieldName( string tableName ) => $"{tableName}s";
 }
 
@@ -247,6 +252,13 @@ public class FieldDefinition
     public override string ToString()
     {
         string name = Name.ToFieldName();
+        StringBuilder sb = new StringBuilder();
+        if (name.StartsWith( "attr_" ))
+        {
+            string field = name.Substring(5, name.Length - 5);
+            sb.Append( "attr_" ).Append( field.ToFieldName() );
+            name = sb.ToString();
+        }
         var pass2 = new CsharpAliasName { Name = name };
         pass2.Pass();
         return $"{pass2.Result} : {Type.Codize()};";

@@ -189,9 +189,12 @@ void ConfigNodeUp( JObject jobj )
         try
         {
             config = jobj.Property( "config" ).Values();
-            if (config != null && config.Count() > 0)
+            if (config != null)
             {
                 jobj.Remove( "config" );
+            }
+            if (config.Count() > 0)
+            {
                 jobj.Add( config );
             }
         }

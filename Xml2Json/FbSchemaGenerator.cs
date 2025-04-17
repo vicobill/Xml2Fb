@@ -62,7 +62,7 @@ public class FbSchemaGenerator
         // 处理自身节点属性，作为FbTable的字段形式
         foreach (XmlAttribute attr in node.Attributes)
         {
-            table.AddField( attr.Name, FbHelper.GetFbTypeFromXmlValue( attr.Value, attr.Name ) );
+            table.AddField("attr_" + attr.Name, FbHelper.GetFbTypeFromXmlValue( attr.Value, attr.Name ) );
         }
 
 
@@ -79,20 +79,7 @@ public class FbSchemaGenerator
 
 
         // 节点名称-节点列表
-        Dictionary<string, List<XmlNode>> xmlElemGroups = new Dictionary<string, List<XmlNode>>();
-        foreach (XmlNode child in node.ChildNodes)
-        {
-            if (!xmlElemGroups.TryGetValue( child.Name, out var xmlElemList ))
-            {
-                xmlElemList = new List<XmlNode>();
-                xmlElemList.Add( child );
-                xmlElemGroups[child.Name] = xmlElemList;
-            }
-            else
-            {
-                xmlElemList.Add( child );
-            }
-        }
+        XmlHelper.GroupSubNodes( node, out var xmlElemGroups );
 
         /* 添加数组字段 */
         foreach (var kv in xmlElemGroups)
@@ -102,7 +89,14 @@ public class FbSchemaGenerator
             string subTableName = /* tableName == FbsTableName ? $"{xmlNodeName.Capitalize()}" :*/ $"{tableName}_{xmlNodeName.Capitalize()}";
             if (xmlNodes.Count > 1)
             {
-                table.AddVectorField( xmlNodeName, subTableName );
+                if(AllIsTextNodes(xmlNodes))
+                {
+                    table.AddVectorField( xmlNodeName, "string" );
+                }
+                else
+                {
+                    table.AddVectorField( xmlNodeName, subTableName );
+                }
             }
             else
             {
@@ -112,14 +106,24 @@ public class FbSchemaGenerator
                 }
                 else
                 {
-                    table.AddField( xmlNodeName, subTableName );
+                    if (XmlHelper.IsTextNode( xmlNodes[0], out XmlNode child ))
+                    {
+                        table.AddField( xmlNodeName, "string" );
+                    }
+                    else
+                    {
+
+                        table.AddField( xmlNodeName, subTableName );
+                    }
                 }
             }
         }
 
         /* 递归处理子节点 */
-        foreach (var kv in xmlElemGroups)
+        foreach (KeyValuePair<string, List<XmlNode>> kv in xmlElemGroups)
         {
+            if (kv.Value.Count == 1 && XmlHelper.IsTextNode( kv.Value.First(), out var _ ))
+                continue;
             foreach (XmlNode subNode in kv.Value)
             {
                 ProcessElement( subNode, builder, kv.Key, table );
@@ -129,6 +133,16 @@ public class FbSchemaGenerator
 
 
         builder.AddTable( table );
+    }
+
+    bool AllIsTextNodes(List<XmlNode> nodes )
+    {
+        foreach(var e in nodes)
+        {
+            if (!XmlHelper.IsTextNode( e, out var _ ))
+                return false;
+        }
+        return true;
     }
 
     bool IsNodeAsArray( XmlNode node )
@@ -220,6 +234,30 @@ public class FbSchemaGenerator
                     }
                 }
                 break;
+            case "newactivityconfig":
+                {
+                    switch (lower)
+                    {
+                        case "activity/tabs":
+                            return true;
+                    }
+                }break;
+            case "newactivityconfig2":
+                {
+                    switch (lower)
+                    {
+                        case "activity/items":
+                            return true;
+                    }
+                }break;
+            case "pvzartseasonconfig":
+                {
+                    switch (lower)
+                    {
+                        case "item/rewards":
+                            return true;
+                    }
+                }break;
             default:
                 break;
         }

@@ -1097,7 +1097,7 @@ namespace Newtonsoft.Json.Converters
                     }
                     else
                     {
-                        return "@" + ResolveFullName(node, manager).CsAlias();
+                        return "@" +"attr_" + ResolveFullName(node, manager)/*.CsAlias()*/;
                     }
                 case XmlNodeType.CDATA:
                     return CDataName;
@@ -1268,7 +1268,7 @@ namespace Newtonsoft.Json.Converters
             {
                 if (writePropertyName)
                 {
-                    writer.WritePropertyName($"{elementNames}s");
+                    writer.WritePropertyName($"{elementNames.DeAlias()}s");
                 }
 
                 writer.WriteStartArray();
@@ -1294,7 +1294,7 @@ namespace Newtonsoft.Json.Converters
             {
                 if (writePropertyName)
                 {
-                    writer.WritePropertyName($"{elementNames}s");
+                    writer.WritePropertyName($"{elementNames.DeAlias()}s");
                 }
 
                 writer.WriteStartArray();
@@ -1402,6 +1402,7 @@ namespace Newtonsoft.Json.Converters
                 case XmlNodeType.ProcessingInstruction:
                 case XmlNodeType.Whitespace:
                 case XmlNodeType.SignificantWhitespace:
+                    
                     if (node.NamespaceUri == "http://www.w3.org/2000/xmlns/" && node.Value == JsonNamespaceUri)
                     {
                         return;
@@ -1417,7 +1418,12 @@ namespace Newtonsoft.Json.Converters
 
                     if (writePropertyName)
                     {
-                        writer.WritePropertyName(GetPropertyName(node, manager));
+                        string pname = GetPropertyName( node, manager );
+                        if (pname == TextName)
+                        {
+                            pname = $"{node.ParentNode.LocalName}_value";
+                        }
+                        writer.WritePropertyName(pname);
                     }
                     writer.WriteValue(node.Value);
                     break;
