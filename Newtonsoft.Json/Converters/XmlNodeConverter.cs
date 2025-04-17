@@ -1081,7 +1081,7 @@ namespace Newtonsoft.Json.Converters
                 ret = XmlConvert.DecodeName(node.LocalName)!;
             }
 
-            ret = StringUtils.ToCamelCase( ret ).Replace('-','_');
+            ret = StringUtils.ToCamelCase( ret ).Replace('-','_').ToLower();
             
             return ret;
         }

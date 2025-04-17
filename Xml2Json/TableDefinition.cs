@@ -134,7 +134,7 @@ public class TableDefinition
     public void AddField( string name, string type, FieldOption option = FieldOption.None )
     {
         //Fields[name.LowerSnakeCase()] = new FieldDefinition( name, type, option );
-        string key = name.ToFieldName();
+        string key = name.ToFieldName().ToLower();
         if (Fields.TryGetValue( key, out FieldDefinition? field ))
         {
             if (field.Type == "string" ||
@@ -220,7 +220,7 @@ public class TableDefinition
             return $"[{scalarType}]";
         return $"[{scalarType.Capitalize()}]";
     }
-    internal static string GetVectorFieldName( string tableName ) => $"{tableName}s";
+    internal static string GetVectorFieldName( string tableName ) => $"{tableName}s".ToLower();
 }
 
 
@@ -256,7 +256,7 @@ public class FieldDefinition
         if (name.StartsWith( "attr_" ))
         {
             string field = name.Substring(5, name.Length - 5);
-            sb.Append( "attr_" ).Append( field.ToFieldName() );
+            sb.Append( "attr_" ).Append( field.ToFieldName().ToLower() );
             name = sb.ToString();
         }
         var pass2 = new CsharpAliasName { Name = name };

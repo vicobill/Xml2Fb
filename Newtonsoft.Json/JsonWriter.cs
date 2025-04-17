@@ -471,7 +471,7 @@ namespace Newtonsoft.Json
         /// <param name="name">The name of the property.</param>
         public virtual void WritePropertyName(string name)
         {
-            name = name.CsAlias();
+            name = name.CsAlias().ToLower();
             InternalWritePropertyName(name);
         }
 

@@ -117,11 +117,11 @@ namespace Xml2Fb.Shared
             string ret = s.Replace( '-', '_' );
             if (ret.IndexOf( '_' ) == -1)
             {
-                ret = StringUtils.ToCamelCase( ret );
+                ret = StringUtils.ToCamelCase( ret ).ToLower();
                 return ret;
             }
 
-            ret = ret.LowerCapital();
+            ret = ret.LowerCapital().ToLower();
             return ret;
         }
             
