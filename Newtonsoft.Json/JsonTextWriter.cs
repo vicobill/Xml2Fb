@@ -410,7 +410,8 @@ namespace Newtonsoft.Json
         public override void WriteNull()
         {
             InternalWriteValue(JsonToken.Null);
-            WriteValueInternal(JsonConvert.Null, JsonToken.Null);
+            //WriteValueInternal(JsonConvert.Null, JsonToken.Null);
+            WriteValueInternal("{}", JsonToken.Null);
         }
 
         /// <summary>

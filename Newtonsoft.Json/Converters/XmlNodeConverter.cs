@@ -1080,7 +1080,7 @@ namespace Newtonsoft.Json.Converters
             {
                 ret = XmlConvert.DecodeName(node.LocalName)!;
             }
-
+            ret = CSharpKeywordAlias.Alias( ret );
             return StringUtils.ToCamelCase( ret );
         }
 
@@ -1139,7 +1139,11 @@ namespace Newtonsoft.Json.Converters
 
             return false;
         }
-        protected virtual bool IsNodeAsArray(string nodeLocalName)
+        private bool IsNodeAsArray(IXmlNode node)
+        {
+            return IsNodeAsArray( $"{node.ParentNode.LocalName}/{node.LocalName}" );
+        }
+        protected virtual bool IsNodeAsArray(string nodeNamePath)
         {
             return false;
         }
@@ -1250,7 +1254,8 @@ namespace Newtonsoft.Json.Converters
 
         private void WriteGroupedNodes(JsonWriter writer, XmlNamespaceManager manager, bool writePropertyName, List<IXmlNode> groupedNodes, string elementNames)
         {
-            bool writeArray = groupedNodes.Count != 1 || IsArray(groupedNodes[0]) || IsNodeAsArray(groupedNodes[0].LocalName);
+            bool writeArray = groupedNodes.Count != 1 || IsArray(groupedNodes[0])
+                || IsNodeAsArray(groupedNodes[0]);
 
             if (!writeArray)
             {
@@ -1276,7 +1281,7 @@ namespace Newtonsoft.Json.Converters
 
         private void WriteGroupedNodes(JsonWriter writer, XmlNamespaceManager manager, bool writePropertyName, IXmlNode node, string elementNames)
         {
-            bool writeArray = IsArray(node);
+            bool writeArray = IsArray(node) || IsNodeAsArray(node);
 
             if (!writeArray)
             {
