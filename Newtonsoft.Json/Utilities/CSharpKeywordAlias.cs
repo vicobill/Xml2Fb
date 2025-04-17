@@ -31,7 +31,7 @@ namespace Newtonsoft.Json.Utilities
             {
                 if (s_CsharpKeywords[i] == name)
                 {
-                    return $"{s_CsharpKeywords[i]}_field";
+                    return $"{s_CsharpKeywords[i]}_alias";
                 }
             }
             return name;

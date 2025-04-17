@@ -1080,8 +1080,9 @@ namespace Newtonsoft.Json.Converters
             {
                 ret = XmlConvert.DecodeName(node.LocalName)!;
             }
+            ret = StringUtils.ToCamelCase( ret );
             ret = CSharpKeywordAlias.Alias( ret );
-            return StringUtils.ToCamelCase( ret );
+            return ret;
         }
 
         private string GetPropertyName(IXmlNode node, XmlNamespaceManager manager)
