@@ -11,8 +11,8 @@
 
     "node_as_array":[
         {
-            "xml":"ActivityConfig",
-            "node_paths":["boxitem/rare","previewgroup/preview"]
+            "xml":"xml2excelforclient",
+            "node_paths":["item/starttime","item/endtime"]
         }
     ],
 
@@ -23,7 +23,9 @@
         "   fbindir: 生成的FlatBuffers 数据二进制目录，是XML数据的转储",
         "   jsondir: 中间XML转JSON的文件，供比对参考",
         "   fbsincdir: FlatBuffers 包含文件目录",
-        "flatc: flatc.exe"
+        "flatc: flatc.exe",
+        "node_as_array: 在xml中，有些项如 <item .../> 只有1项，但在其它同级节点，有多个 <item .../> <item .../>,然后再在另外同级节点也只有1项。",
+        "   这种交替出现数量不一致，会导致在flatbuffer中将其作为数组时，某些仅有一项而序列化失败。此时，应明确指定，即使仅有1项数据的节点，也应视为数组节点。"
     ]
 
 
