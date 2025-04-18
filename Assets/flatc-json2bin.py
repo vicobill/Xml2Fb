@@ -13,12 +13,21 @@ def json_to_bin(fileName):
     cmd=f"{flatc()} -o gen/bytes -I fbs-inc -b gen/fbs/{fileName}.fbs gen/json/{fileName}.json"
     os.system(cmd)
 
+def bin_to_json(fileName):
+    cmd=f"{flatc()} -o gen/json/verify -I fbs-inc --natural-utf8 --raw-binary -t gen/fbs/{fileName}.fbs -- gen/bytes/{fileName}.bin"
+    os.system(cmd)
 
-def process_data(file):
+
+def process_json2bin(file):
     name = os.path.basename(file).removesuffix(".fbs")
     # print(f"处理文件 \t\t{name}")
 
     json_to_bin(name)
+
+def process_bin2json(file):
+    name = os.path.basename(file).removesuffix(".fbs")
+    bin_to_json(name)
+
 
 def process_result(result):
     print(result)
@@ -32,12 +41,21 @@ if __name__ == '__main__':
             data_list.append(file)
 
     pool = mp.Pool(8)
+    print("开始运行json-to-bin")
     with tqdm(total=len(data_list)) as pbar:
         for data in data_list:
-            result = pool.apply_async(process_data, args=(data,))
+            result = pool.apply_async(process_json2bin, args=(data,))
             result.get()  # 等待任务执行完成
             results.append(result)
             pbar.update(1)  # 更新进度条
+
+    print("开始运行bin-to-json")
+    with tqdm(total=len(data_list)) as pbar:
+        for data in data_list:
+            result = pool.apply_async(process_bin2json,args=(data,))
+            result.get()
+            results.append(result)
+            pbar.update(1)
     # 关闭进程池
     pool.close()
     pool.join()
