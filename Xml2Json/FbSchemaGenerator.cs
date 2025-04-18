@@ -62,7 +62,7 @@ public class FbSchemaGenerator
         // 处理自身节点属性，作为FbTable的字段形式
         foreach (XmlAttribute attr in node.Attributes)
         {
-            table.AddField("attr_" + attr.Name, FbHelper.GetFbTypeFromXmlValue( attr.Value, attr.Name ) );
+            table.AddField( "attr_" + attr.Name, FbHelper.GetFbTypeFromXmlValue( attr.Value, attr.Name ) );
         }
 
 
@@ -89,7 +89,7 @@ public class FbSchemaGenerator
             string subTableName = /* tableName == FbsTableName ? $"{xmlNodeName.Capitalize()}" :*/ $"{tableName}_{xmlNodeName.Capitalize()}";
             if (xmlNodes.Count > 1)
             {
-                if(AllIsTextNodes(xmlNodes))
+                if (AllIsTextNodes( xmlNodes ))
                 {
                     table.AddVectorField( xmlNodeName, "string" );
                 }
@@ -135,9 +135,9 @@ public class FbSchemaGenerator
         builder.AddTable( table );
     }
 
-    bool AllIsTextNodes(List<XmlNode> nodes )
+    bool AllIsTextNodes( List<XmlNode> nodes )
     {
-        foreach(var e in nodes)
+        foreach (var e in nodes)
         {
             if (!XmlHelper.IsTextNode( e, out var _ ))
                 return false;
@@ -241,7 +241,8 @@ public class FbSchemaGenerator
                         case "activity/tabs":
                             return true;
                     }
-                }break;
+                }
+                break;
             case "newactivityconfig2":
                 {
                     switch (lower)
@@ -250,7 +251,8 @@ public class FbSchemaGenerator
                         case "activity/showitems":
                             return true;
                     }
-                }break;
+                }
+                break;
             case "pvzartseasonconfig":
                 {
                     switch (lower)
@@ -258,7 +260,8 @@ public class FbSchemaGenerator
                         case "item/rewards":
                             return true;
                     }
-                }break;
+                }
+                break;
             case "xml2excelforclient":
                 {
                     switch (lower)
@@ -271,6 +274,25 @@ public class FbSchemaGenerator
                 break;
 
             default:
+                {
+                    if (Conf.Instance != null && Conf.Instance.node_as_array != null && Conf.Instance.node_as_array.Count > 0)
+                    {
+                        foreach (var e in Conf.Instance.node_as_array)
+                        {
+                            if (e.xml.ToLower() != domain)
+                                continue;
+
+                            foreach (var nodePath in e.node_paths)
+                            {
+                                if (nodePath.ToLower() == lower)
+                                {
+                                    return true;
+                                }
+                            }
+
+                        }
+                    }
+                }
                 break;
         }
 

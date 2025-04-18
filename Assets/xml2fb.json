@@ -9,6 +9,13 @@
     "csharpdir":"gen/cs",
     "flatc":"bin/flatc.exe",
 
+    "node_as_array":[
+        {
+            "xml":"ActivityConfig",
+            "node_paths":["boxitem/rare","previewgroup/preview"]
+        }
+    ],
+
     "说明":[
         "workdir: 是工作目录,xmldir,fbsdir,fbindir,jsondir都相对于此目录",
         "   xmldir: 球球XML配置文件目录",

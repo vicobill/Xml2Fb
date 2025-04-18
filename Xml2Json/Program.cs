@@ -217,6 +217,7 @@ Conf? LoadConf( string confFile = null )
         using var reader = new JsonTextReader( sr );
         Conf conf = jsonSerializer.Deserialize<Conf>( reader );
         conf.EnsureDir();
+        Conf.Instance = conf;
         return conf;
     }
     catch (Exception ex)
@@ -238,6 +239,14 @@ public class Conf
     public string fbindir;
     public string flatc;
     public string csharpdir;
+    
+    public class NodeAsArray
+    {
+        public string xml;
+        public List<string> node_paths;
+    }
+
+    public List<NodeAsArray> node_as_array;
 
     public string GetJsonDir() => $"{workdir}/{jsondir}";
     public string GetFbsDir() => $"{workdir}/{fbsdir}";
@@ -247,6 +256,8 @@ public class Conf
     public string GetFbsIncDir() => $"{workdir}/{fbsincdir}";
     public string GetFlatc() => $"{workdir}/{flatc}";
     public string GetVerifyJsonDir() => $"{workdir}/{jsondir}/verify";
+
+    public static Conf Instance { get; set; }
 
     public void EnsureDir()
     {
