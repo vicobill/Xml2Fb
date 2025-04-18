@@ -6,9 +6,10 @@
     <Nullable>enable</Nullable>
     <AotAssemblies>true</AotAssemblies>
     <BaseOutputPath>E:\project\my-tools\Xml2FbSchemaGenerator\bin</BaseOutputPath>
-    <PublishAot>true</PublishAot>
+    <PublishAot>False</PublishAot>
     <IsAotCompatible>true</IsAotCompatible>
     <StripSymbols>true</StripSymbols>
+    <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Xml2Fb.Shared\Xml2Fb.Shared.csproj" />

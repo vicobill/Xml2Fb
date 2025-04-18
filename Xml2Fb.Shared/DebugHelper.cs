@@ -52,6 +52,12 @@ namespace Xml2Fb.Shared
             scc.Println( "INFO", msg );
         }
 
+        public static void PrintOk(string msg )
+        {
+            using ScopeConColor scc = new ScopeConColor();
+            scc.SetForegroundColor( ConsoleColor.Green )
+                .Println( "OK", msg );
+        }
 
     }
 }

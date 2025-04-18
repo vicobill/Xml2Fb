@@ -12,7 +12,8 @@ using Xml2Fb.Shared;
 
 
 // 加载配置文件
-string confFile = "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets\\xml2fb.json";
+//string confFile = "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets\\xml2fb.json";
+string confFile = "";
 if (args.Length > 0)
 {
     confFile = args[0];
@@ -22,7 +23,7 @@ if (conf == null) return;
 
 Directory.SetCurrentDirectory( conf.workdir );
 
-IEnumerable<string>? xmlFiles = Directory.EnumerateFiles( conf.GetXmlDir(), "*.xml", new EnumerationOptions { RecurseSubdirectories = true } );
+IEnumerable<string>? xmlFiles = Directory.EnumerateFiles( conf.GetXmlDir(), "*.xml", new EnumerationOptions { RecurseSubdirectories = conf.isrec } );
 
 
 
@@ -47,7 +48,7 @@ foreach (var xmlFile in xmlFiles)
         FlatcGenCsharpCode( fbsFile, conf );
         FlatcJsonToBin( fileName, conf );
         FlatcBinToJson( fileName, conf );
-        DebugHelper.Print( $"处理Xml文件 {fileName}.xml 结束！" );
+        DebugHelper.PrintOk( $"处理Xml文件 {fileName}.xml 结束！" );
     } ).ConfigureAwait( false );
 
 
@@ -112,7 +113,7 @@ Task FlatcGenCsharpCode( string fbsFile, Conf conf )
     ps.StartInfo.FileName = conf.GetFlatc();
     ps.StartInfo.RedirectStandardError = true;
     ps.StartInfo.RedirectStandardOutput = true;
-    ps.StartInfo.Arguments = $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --jsonschema --csharp {fbsFile} ";
+    ps.StartInfo.Arguments = $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --csharp {fbsFile} ";
     ps.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[GenC#] {fbsFile} {e.Data}" );
     ps.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[GenC#] {fbsFile} {e.Data}" );
     ps.Start();
@@ -146,7 +147,7 @@ void SaveJsonAsync( XmlDocument doc, string jsonFile )
 {
     //DebugHelper.Print( $"处理文件 {jsonFile}" );
     string name = Path.GetFileNameWithoutExtension( jsonFile );
-    XmlNodeConverter converter = new MyXmlNodeConverter { OmitRootObject = false, WriteArrayAttribute=true };
+    XmlNodeConverter converter = new MyXmlNodeConverter { OmitRootObject = false, WriteArrayAttribute = true };
     var settings = new JsonSerializerSettings
     {
         Converters = new List<JsonConverter> { converter },
@@ -206,23 +207,25 @@ void ConfigNodeUp( JObject jobj )
 
 Conf? LoadConf( string confFile = null )
 {
-    var jsonSerializer = JsonSerializer.CreateDefault();
+
     if (string.IsNullOrEmpty( confFile ))
     {
-        confFile = "xml2fb.json";
+        confFile = Path.Combine( Directory.GetCurrentDirectory(), "xml2fb.json" );
     }
     try
     {
+        var jsonSerializer = JsonSerializer.CreateDefault();
         using StreamReader sr = File.OpenText( confFile );
         using var reader = new JsonTextReader( sr );
-        Conf conf = jsonSerializer.Deserialize<Conf>( reader );
-        conf.EnsureDir();
-        Conf.Instance = conf;
+        Conf? conf = jsonSerializer.Deserialize<Conf>( reader );
+        conf?.EnsureDir();
+        Conf.Instance = conf!;
         return conf;
     }
     catch (Exception ex)
     {
-        DebugHelper.PrintError( "找不到配置文件 xml2fb.json" );
+        DebugHelper.PrintError( ex.Message );
+        DebugHelper.PrintError(ex.StackTrace);
         return null;
     }
 }
@@ -233,13 +236,30 @@ public class Conf
 {
     public string workdir;
     public string xmldir;
+    public bool isrec;
+    public string pkgname;
     public string fbsdir;
     public string jsondir;
     public string fbsincdir;
     public string fbindir;
     public string flatc;
     public string csharpdir;
-    
+
+    [JsonConstructor]
+    public Conf()
+    {
+        workdir = Directory.GetCurrentDirectory();
+        xmldir = "xml";
+        fbsdir = "gen/fbs";
+        jsondir = "gen/json";
+        fbsincdir = "fbs-inc";
+        fbindir = "gen/bytes";
+        flatc = "bin/flatc.exe";
+        csharpdir = "gen/cs";
+        pkgname = "Config.FBin";
+    }
+
+
     public class NodeAsArray
     {
         public string xml;
@@ -248,14 +268,52 @@ public class Conf
 
     public List<NodeAsArray> node_as_array;
 
-    public string GetJsonDir() => $"{workdir}/{jsondir}";
-    public string GetFbsDir() => $"{workdir}/{fbsdir}";
-    public string GetFbsBinDir() => $"{workdir}/{fbindir}";
-    public string GetXmlDir() => $"{workdir}/{xmldir}";
-    public string GetCsharpDir() => $"{workdir}/{csharpdir}";
-    public string GetFbsIncDir() => $"{workdir}/{fbsincdir}";
-    public string GetFlatc() => $"{workdir}/{flatc}";
-    public string GetVerifyJsonDir() => $"{workdir}/{jsondir}/verify";
+    public string GetJsonDir()
+    {
+        if (Path.IsPathRooted( jsondir ))
+            return jsondir;
+        return $"{workdir}/{jsondir}";
+    }
+    public string GetFbsDir()
+    {
+        if (Path.IsPathRooted( fbsdir ))
+            return fbsdir;
+        return $"{workdir}/{fbsdir}";
+    }
+    public string GetFbsBinDir()
+    {
+        if (Path.IsPathRooted( fbsincdir ))
+            return fbsincdir;
+        return $"{workdir}/{fbindir}";
+    }
+    public string GetXmlDir()
+    {
+        if (Path.IsPathRooted( xmldir ))
+            return xmldir;
+        return $"{workdir}/{xmldir}";
+    }
+    public string GetCsharpDir()
+    {
+        if (Path.IsPathRooted( csharpdir ))
+            return csharpdir;
+        return $"{workdir}/{csharpdir}";
+    }
+    public string GetFbsIncDir()
+    {
+        if (Path.IsPathRooted( fbsincdir ))
+            return fbsincdir;
+        return $"{workdir}/{fbsincdir}";
+    }
+    public string GetFlatc()
+    {
+        if (Path.IsPathRooted( flatc ))
+            return flatc;
+        return $"{workdir}/{flatc}";
+    }
+    public string GetVerifyJsonDir()
+    {
+        return $"{GetJsonDir()}/verify";
+    }
 
     public static Conf Instance { get; set; }
 
