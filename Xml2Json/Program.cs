@@ -11,10 +11,15 @@ using Xml2Fb;
 using Xml2Fb.Shared;
 
 
+DebugHelper.PrintDebug( Conf.GetAbsDir( "./a/b/c" ));
+DebugHelper.PrintDebug( Conf.GetAbsDir( "../a/b/c" ) );
+
+return;
+
 // 加载配置文件
 //string confFile = "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets\\xml2fb.json";
 string confFile = "";
-if (args.Length > 0)
+if (args.Length > 0 && string.IsNullOrEmpty( confFile ))
 {
     confFile = args[0];
 }
@@ -106,18 +111,26 @@ void FlatcBinToJson( string fileName, Conf conf )
 }
 
 
-Task FlatcGenCsharpCode( string fbsFile, Conf conf )
+async Task FlatcGenCsharpCode( string fbsFile, Conf conf )
 {
-    //DebugHelper.PrintDebug( $"[GenC#] 处理文件:{fbsFile}" );
+    DebugHelper.PrintDebug( $"[GenC#] 处理文件:{fbsFile}" );
     Process ps = new Process();
     ps.StartInfo.FileName = conf.GetFlatc();
     ps.StartInfo.RedirectStandardError = true;
     ps.StartInfo.RedirectStandardOutput = true;
-    ps.StartInfo.Arguments = $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --csharp {fbsFile} ";
+    ps.StartInfo.UseShellExecute = false;
+    ps.StartInfo.Arguments = $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --cs-gen-json-serializer --gen-all --csharp {fbsFile} ";
+
     ps.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[GenC#] {fbsFile} {e.Data}" );
     ps.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[GenC#] {fbsFile} {e.Data}" );
     ps.Start();
-    return ps.WaitForExitAsync();
+    string stdout = await ps.StandardOutput.ReadToEndAsync();
+    if (!string.IsNullOrEmpty( stdout ))
+        DebugHelper.PrintWarning( stdout );
+    string stderr = await ps.StandardError.ReadToEndAsync();
+    if (!string.IsNullOrEmpty( stderr ))
+        DebugHelper.PrintError( stderr );
+    await ps.WaitForExitAsync();
 
 
 }
@@ -155,7 +168,6 @@ void SaveJsonAsync( XmlDocument doc, string jsonFile )
 
     };
     string json2 = JsonConvert.SerializeObject( doc, Newtonsoft.Json.Formatting.None, settings );
-    //string json2 = JsonConvert.SerializeXmlNode( doc, Newtonsoft.Json.Formatting.None, false );
 
     JObject? jobj = JObject.Parse( json2 );
 
@@ -166,9 +178,7 @@ void SaveJsonAsync( XmlDocument doc, string jsonFile )
     string json = jobj.ToString();
     string ret = Regex.Replace( json, @"@(\w+)", ( m ) =>
      {
-
          return m.Groups[1].Value.Codize();
-
      }, RegexOptions.Multiline );
 
     File.WriteAllText( jsonFile, ret );
@@ -225,7 +235,7 @@ Conf? LoadConf( string confFile = null )
     catch (Exception ex)
     {
         DebugHelper.PrintError( ex.Message );
-        DebugHelper.PrintError(ex.StackTrace);
+        DebugHelper.PrintError( ex.StackTrace );
         return null;
     }
 }
@@ -259,6 +269,8 @@ public class Conf
         pkgname = "Config.FBin";
     }
 
+    public List<NodeAsArray> node_as_array;
+    public List<TablePreset> table_preset;
 
     public class NodeAsArray
     {
@@ -266,49 +278,73 @@ public class Conf
         public List<string> node_paths;
     }
 
-    public List<NodeAsArray> node_as_array;
+    public class TablePreset
+    {
+        public string table;
+        public string preset;
+    }
+
+    public static string GetAbsDir(string path)
+    {
+        if (path.StartsWith( ".." ))
+        {
+            string curdir = Directory.GetCurrentDirectory(); 
+            int i = curdir.LastIndexOf( Path.DirectorySeparatorChar );
+            string p = curdir.Substring( 0, i );
+            path = $"{p}{path.Substring( 2 )}";
+        }
+        else
+        if (path.StartsWith( "." ))
+            path = $"{Directory.GetCurrentDirectory()}{path.Substring( 1 )}";
+        
+
+        return path;
+    }
+
+    public string WorkingDir => GetAbsDir(workdir);
+
 
     public string GetJsonDir()
     {
         if (Path.IsPathRooted( jsondir ))
             return jsondir;
-        return $"{workdir}/{jsondir}";
+        return $"{WorkingDir}/{jsondir}";
     }
     public string GetFbsDir()
     {
         if (Path.IsPathRooted( fbsdir ))
             return fbsdir;
-        return $"{workdir}/{fbsdir}";
+        return $"{WorkingDir}/{fbsdir}";
     }
     public string GetFbsBinDir()
     {
         if (Path.IsPathRooted( fbsincdir ))
             return fbsincdir;
-        return $"{workdir}/{fbindir}";
+        return $"{WorkingDir}/{fbindir}";
     }
     public string GetXmlDir()
     {
         if (Path.IsPathRooted( xmldir ))
             return xmldir;
-        return $"{workdir}/{xmldir}";
+        return $"{WorkingDir}/{xmldir}";
     }
     public string GetCsharpDir()
     {
         if (Path.IsPathRooted( csharpdir ))
             return csharpdir;
-        return $"{workdir}/{csharpdir}";
+        return $"{WorkingDir}/{csharpdir}";
     }
     public string GetFbsIncDir()
     {
         if (Path.IsPathRooted( fbsincdir ))
             return fbsincdir;
-        return $"{workdir}/{fbsincdir}";
+        return $"{WorkingDir}/{fbsincdir}";
     }
     public string GetFlatc()
     {
         if (Path.IsPathRooted( flatc ))
             return flatc;
-        return $"{workdir}/{flatc}";
+        return $"{WorkingDir}/{flatc}";
     }
     public string GetVerifyJsonDir()
     {

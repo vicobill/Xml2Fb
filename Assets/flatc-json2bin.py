@@ -59,10 +59,6 @@ if __name__ == '__main__':
     # 关闭进程池
     pool.close()
     pool.join()
-    # 处理结果
-    # for result in results:
-    #     process_result(result)
-
 
 
 # json_to_bin("AccomplishmentConfig")

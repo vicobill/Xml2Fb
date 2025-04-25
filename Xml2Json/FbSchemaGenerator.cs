@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml;
 using Xml2Fb.Shared;
 using Xml2Fb.Shared.FbDef;
@@ -41,15 +42,35 @@ public class FbSchemaGenerator
 
         return schemaBuilder.ToString();
     }
-
-
+    
+    bool IsTablePreset(string tableName,out string presetTableName)
+    { // tableName = BaseShopConfig_BallEquipment_Item
+        // xmlConfig = BaseShopConfig
+        presetTableName = null;
+        foreach(var e in Conf.Instance.table_preset)
+        {
+            var m = Regex.Match( tableName, e.table );
+            if(!m.Success)
+                continue;
+            presetTableName = e.preset;
+            return true;
+        }
+        return false;
+    }
 
     void ProcessElement( XmlNode node, SchemaBuilder builder, string typeName, TableDefinition parentTable )
     {
         string tableName = typeName.Capitalize();
         if (parentTable != null /*&& parentTable.Name != FbsTableName*/)
         {
-            tableName = $"{parentTable.Name}_{tableName}";
+            tableName = $"{parentTable.Name}_{tableName}";            
+        }
+
+        bool isPresetTable = IsTablePreset( tableName, out var presetTableName );
+
+        if (isPresetTable)
+        {
+            tableName = presetTableName;
         }
 
         if (!builder.TryPeek( tableName, out TableDefinition table ))
@@ -81,12 +102,19 @@ public class FbSchemaGenerator
         // 节点名称-节点列表
         XmlHelper.GroupSubNodes( node, out var xmlElemGroups );
 
+        List<string> presetTableXmlNodes = new List<string>();
+
         /* 添加数组字段 */
         foreach (var kv in xmlElemGroups)
         {
             string xmlNodeName = kv.Key;
             List<XmlNode> xmlNodes = kv.Value;
-            string subTableName = /* tableName == FbsTableName ? $"{xmlNodeName.Capitalize()}" :*/ $"{tableName}_{xmlNodeName.Capitalize()}";
+            string subTableName = $"{tableName}_{xmlNodeName.Capitalize()}";
+            if (IsTablePreset(subTableName,out string presetSubTableName ))
+            {
+                subTableName = presetSubTableName;
+                presetTableXmlNodes.Add( xmlNodeName );
+            }
             if (xmlNodes.Count > 1)
             {
                 if (AllIsTextNodes( xmlNodes ))
@@ -123,6 +151,8 @@ public class FbSchemaGenerator
         foreach (KeyValuePair<string, List<XmlNode>> kv in xmlElemGroups)
         {
             if (kv.Value.Count == 1 && XmlHelper.IsTextNode( kv.Value.First(), out var _ ))
+                continue;
+            if (presetTableXmlNodes.IndexOf( kv.Key ) >= 0)
                 continue;
             foreach (XmlNode subNode in kv.Value)
             {

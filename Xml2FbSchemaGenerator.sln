@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xml2Fb", "Xml2Json\Xml2Fb.c
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Newtonsoft.Json", "Newtonsoft.Json\Newtonsoft.Json.csproj", "{FA9399D4-4DE2-75B5-757E-52438A99111C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoveDumpKeys", "RemoveDumpKeys\RemoveDumpKeys.csproj", "{ECA85332-1974-42EB-9729-AB0616A561B7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{FA9399D4-4DE2-75B5-757E-52438A99111C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA9399D4-4DE2-75B5-757E-52438A99111C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA9399D4-4DE2-75B5-757E-52438A99111C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ECA85332-1974-42EB-9729-AB0616A561B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECA85332-1974-42EB-9729-AB0616A561B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECA85332-1974-42EB-9729-AB0616A561B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECA85332-1974-42EB-9729-AB0616A561B7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

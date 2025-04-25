@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RemoveDumpKeys": {
+      "commandName": "Project",
+      "commandLineArgs": "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets\\fbs-inc\\scratch"
+    }
+  }
+}
