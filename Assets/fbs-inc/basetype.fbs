@@ -1,11 +1,5 @@
-struct DateTime {
-    year:uint;
-    month:byte;
-    day:byte;
-    hour: byte;
-    minute: byte;
-    second: byte;
-}
+
+namespace Config.FbBin;
 
 table ShopConfig_BallEquipment_Item
 {

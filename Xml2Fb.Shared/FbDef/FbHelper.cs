@@ -85,26 +85,33 @@ namespace Xml2Fb.Shared.FbDef
             }
 
 
-            if (uint.TryParse( xmlValue, out _ ))
-            {
-                if (hasSep)
-                    return "string";
-                return "uint";
-            }
+            if (int.TryParse( xmlValue, out _ )) {return "int";}
+            if (uint.TryParse( xmlValue, out _ )) {return "uint";}
 
-            if (int.TryParse( xmlValue, out _ ))
-            {
-                return "int";
-            }
+            if (long.TryParse( xmlValue, out _ )) { return "long"; }
+            if (ulong.TryParse( xmlValue, out _ )) { return "ulong"; }
 
-            if (float.TryParse( xmlValue, out _ ))
-                return "float";
+            if (float.TryParse( xmlValue, out _ )){  return "float"; }
+            if (double.TryParse( xmlValue, out _ )) {  return "double"; }
 
-            if (bool.TryParse( xmlValue, out _ ))
-                return "bool";
+            if (short.TryParse( xmlValue, out _ )) { return "short"; }
+            if (ushort.TryParse( xmlValue, out _ )) { return "ushort"; }
+
+            if (sbyte.TryParse( xmlValue, out _)) { return "byte"; }
+            if (byte.TryParse( xmlValue, out _ )){ return "ubyte"; }
+
+            if (bool.TryParse( xmlValue, out _ )) { return "bool";}
 
             return "string";
         }
+
+        public static bool IsUnsignedType(string type )
+        {
+            if (type.StartsWith( 'u' ))
+                return true;
+            return false;
+        }
+   
 
         public static bool IsFbScalarType( string typeName )
         {

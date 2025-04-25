@@ -11,11 +11,6 @@ using Xml2Fb;
 using Xml2Fb.Shared;
 
 
-DebugHelper.PrintDebug( Conf.GetAbsDir( "./a/b/c" ));
-DebugHelper.PrintDebug( Conf.GetAbsDir( "../a/b/c" ) );
-
-return;
-
 // 加载配置文件
 //string confFile = "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets\\xml2fb.json";
 string confFile = "";
@@ -30,7 +25,7 @@ Directory.SetCurrentDirectory( conf.workdir );
 
 IEnumerable<string>? xmlFiles = Directory.EnumerateFiles( conf.GetXmlDir(), "*.xml", new EnumerationOptions { RecurseSubdirectories = conf.isrec } );
 
-
+bool _is_start = false;
 
 foreach (var xmlFile in xmlFiles)
 {
@@ -47,6 +42,8 @@ foreach (var xmlFile in xmlFiles)
         GenFbSchema( doc, xmlFile, conf );
         SaveJsonAsync( doc, jsonFile );
     } ).ConfigureAwait( false );
+
+    await FlatcGenFbsIncCsharpCode( conf );
 
     await Task.Run( () =>
     {
@@ -111,6 +108,37 @@ void FlatcBinToJson( string fileName, Conf conf )
 }
 
 
+async Task FlatcGenFbsIncCsharpCode(Conf conf)
+{
+    if (_is_start)
+        return;
+
+    _is_start = true;
+    var fbsList = Directory.GetFiles( conf.GetFbsIncDir(), "*.fbs" );
+    foreach (var fbsFile in fbsList)
+    {
+
+        DebugHelper.PrintDebug( $"[GenC#] 处理文件:{fbsFile}" );
+        Process ps = new Process();
+        ps.StartInfo.FileName = conf.GetFlatc();
+        ps.StartInfo.RedirectStandardError = true;
+        ps.StartInfo.RedirectStandardOutput = true;
+        ps.StartInfo.UseShellExecute = false;
+        ps.StartInfo.Arguments = $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --cs-gen-json-serializer --csharp {fbsFile} ";
+
+        ps.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[GenC#] {fbsFile} {e.Data}" );
+        ps.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[GenC#] {fbsFile} {e.Data}" );
+        ps.Start();
+        string stdout = await ps.StandardOutput.ReadToEndAsync();
+        if (!string.IsNullOrEmpty( stdout ))
+            DebugHelper.PrintWarning( stdout );
+        string stderr = await ps.StandardError.ReadToEndAsync();
+        if (!string.IsNullOrEmpty( stderr ))
+            DebugHelper.PrintError( stderr );
+        await ps.WaitForExitAsync();
+    }
+}
+
 async Task FlatcGenCsharpCode( string fbsFile, Conf conf )
 {
     DebugHelper.PrintDebug( $"[GenC#] 处理文件:{fbsFile}" );
@@ -119,7 +147,7 @@ async Task FlatcGenCsharpCode( string fbsFile, Conf conf )
     ps.StartInfo.RedirectStandardError = true;
     ps.StartInfo.RedirectStandardOutput = true;
     ps.StartInfo.UseShellExecute = false;
-    ps.StartInfo.Arguments = $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --cs-gen-json-serializer --gen-all --csharp {fbsFile} ";
+    ps.StartInfo.Arguments = $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --cs-gen-json-serializer --csharp {fbsFile} ";
 
     ps.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[GenC#] {fbsFile} {e.Data}" );
     ps.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[GenC#] {fbsFile} {e.Data}" );
