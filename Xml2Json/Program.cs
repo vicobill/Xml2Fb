@@ -12,8 +12,11 @@ using Xml2Fb.Shared;
 
 
 // 加载配置文件
+//#if DEBUG
 //string confFile = "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets\\xml2fb.json";
+//#else
 string confFile = "";
+//#endif
 if (args.Length > 0 && string.IsNullOrEmpty( confFile ))
 {
     confFile = args[0];
@@ -91,6 +94,8 @@ void FlatcJsonToBin( string fileName, Conf conf )
 
 }
 
+
+
 void FlatcBinToJson( string fileName, Conf conf )
 {
     Process process = new Process();
@@ -107,8 +112,14 @@ void FlatcBinToJson( string fileName, Conf conf )
     process.Start();
 }
 
-
-async Task FlatcGenFbsIncCsharpCode(Conf conf)
+string get_gen_cs_cmd( Conf conf, string fbsFile )
+{
+    if (conf.isthin)
+        return $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --csharp {fbsFile} ";
+    else
+        return $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --cs-gen-json-serializer --csharp {fbsFile} ";
+}
+async Task FlatcGenFbsIncCsharpCode( Conf conf )
 {
     if (_is_start)
         return;
@@ -124,7 +135,7 @@ async Task FlatcGenFbsIncCsharpCode(Conf conf)
         ps.StartInfo.RedirectStandardError = true;
         ps.StartInfo.RedirectStandardOutput = true;
         ps.StartInfo.UseShellExecute = false;
-        ps.StartInfo.Arguments = $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --cs-gen-json-serializer --csharp {fbsFile} ";
+        ps.StartInfo.Arguments = get_gen_cs_cmd( conf, fbsFile );
 
         ps.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[GenC#] {fbsFile} {e.Data}" );
         ps.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[GenC#] {fbsFile} {e.Data}" );
@@ -147,7 +158,7 @@ async Task FlatcGenCsharpCode( string fbsFile, Conf conf )
     ps.StartInfo.RedirectStandardError = true;
     ps.StartInfo.RedirectStandardOutput = true;
     ps.StartInfo.UseShellExecute = false;
-    ps.StartInfo.Arguments = $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --cs-gen-json-serializer --csharp {fbsFile} ";
+    ps.StartInfo.Arguments = get_gen_cs_cmd( conf, fbsFile );
 
     ps.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[GenC#] {fbsFile} {e.Data}" );
     ps.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[GenC#] {fbsFile} {e.Data}" );
@@ -282,6 +293,7 @@ public class Conf
     public string fbindir;
     public string flatc;
     public string csharpdir;
+    public bool isthin;
 
     [JsonConstructor]
     public Conf()
@@ -295,6 +307,7 @@ public class Conf
         flatc = "bin/flatc.exe";
         csharpdir = "gen/cs";
         pkgname = "Config.FBin";
+        isthin = true;
     }
 
     public List<NodeAsArray> node_as_array;
@@ -312,11 +325,11 @@ public class Conf
         public string preset;
     }
 
-    public static string GetAbsDir(string path)
+    public static string GetAbsDir( string path )
     {
         if (path.StartsWith( ".." ))
         {
-            string curdir = Directory.GetCurrentDirectory(); 
+            string curdir = Directory.GetCurrentDirectory();
             int i = curdir.LastIndexOf( Path.DirectorySeparatorChar );
             string p = curdir.Substring( 0, i );
             path = $"{p}{path.Substring( 2 )}";
@@ -324,12 +337,12 @@ public class Conf
         else
         if (path.StartsWith( "." ))
             path = $"{Directory.GetCurrentDirectory()}{path.Substring( 1 )}";
-        
+
 
         return path;
     }
 
-    public string WorkingDir => GetAbsDir(workdir);
+    public string WorkingDir => GetAbsDir( workdir );
 
 
     public string GetJsonDir()
