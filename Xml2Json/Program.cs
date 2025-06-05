@@ -9,58 +9,128 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using Xml2Fb;
 using Xml2Fb.Shared;
+using CommandLine;
 
+
+
+
+
+string confFile = "xml2fb.json";
+bool deploy = false;
+
+Parser.Default.ParseArguments<CmdOpts>( args )
+    .WithParsed( opts =>
+    {
+        confFile = opts.Conf;
+        deploy = opts.Deploy;
+    } );
 
 // 加载配置文件
-//#if DEBUG
-//string confFile = "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets\\xml2fb.json";
-//#else
-string confFile = "";
-//#endif
-if (args.Length > 0 && string.IsNullOrEmpty( confFile ))
-{
-    confFile = args[0];
-}
+
+//confFile = "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets\\xml2fb.json";
+
 Conf? conf = LoadConf( confFile );
-if (conf == null) return;
-
-Directory.SetCurrentDirectory( conf.workdir );
-
-IEnumerable<string>? xmlFiles = Directory.EnumerateFiles( conf.GetXmlDir(), "*.xml", new EnumerationOptions { RecurseSubdirectories = conf.isrec } );
-
-bool _is_start = false;
-
-foreach (var xmlFile in xmlFiles)
+if (conf == null)
 {
-    //string xmlFile = $"{conf.GetXmlDir()}/BlindBoxConfig.xml";
-    string fileName = Path.GetFileNameWithoutExtension( xmlFile );
-    string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
-    string fbsFile = Path.Combine( conf.GetFbsDir(), $"{fileName}.fbs" );
+    DebugHelper.PrintError( "未指定配置文件" );
+    return;
+}
+bool _is_start = false;
+Directory.SetCurrentDirectory( conf.workdir );
+if (!deploy)
+{
 
+    IEnumerable<string>? xmlFiles = Directory.EnumerateFiles( conf.GetXmlDir(), "*.xml", new EnumerationOptions { RecurseSubdirectories = conf.isrec } );
 
-    await Task.Run( () =>
+    foreach (var xmlFile in xmlFiles)
     {
-        DebugHelper.Print( $"处理Xml文件 {fileName}.xml" );
-        XmlDocument doc = LoadXml( xmlFile );
-        GenFbSchema( doc, xmlFile, conf );
-        SaveJsonAsync( doc, jsonFile );
-    } ).ConfigureAwait( false );
+        //string xmlFile = $"{conf.GetXmlDir()}/BlindBoxConfig.xml";
+        string fileName = Path.GetFileNameWithoutExtension( xmlFile );
+        string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
+        string fbsFile = Path.Combine( conf.GetFbsDir(), $"{fileName}.fbs" );
 
-    await FlatcGenFbsIncCsharpCode( conf );
 
-    await Task.Run( () =>
+        await Task.Run( () =>
+        {
+            DebugHelper.Print( $"处理Xml文件 {fileName}.xml" );
+            XmlDocument doc = LoadXml( xmlFile );
+            GenFbSchema( doc, xmlFile, conf );
+            SaveJsonAsync( doc, jsonFile );
+        } ).ConfigureAwait( false );
+
+        await FlatcGenFbsIncCsharpCode( conf );
+
+        await Task.Run( () =>
+        {
+            FlatcGenCsharpCode( fbsFile, conf );
+            FlatcJsonToBin( fileName, conf );
+            FlatcBinToJson( fileName, conf );
+            DebugHelper.PrintOk( $"处理Xml文件 {fileName}.xml 结束！" );
+        } ).ConfigureAwait( false );
+
+
+
+    }
+
+    DebugHelper.Print( "DONE!" );
+}
+else
+{
+    if (conf.deploy == null)
     {
-        FlatcGenCsharpCode( fbsFile, conf );
-        FlatcJsonToBin( fileName, conf );
-        FlatcBinToJson( fileName, conf );
-        DebugHelper.PrintOk( $"处理Xml文件 {fileName}.xml 结束！" );
-    } ).ConfigureAwait( false );
+        DebugHelper.PrintError( "配置文件中未配置 deploy" );
+        return;
+    }
+
+    IEnumerable<string>? xmlFiles = Directory.EnumerateFiles( conf.GetDeployXmlDir(), "*.xml", new EnumerationOptions { RecurseSubdirectories = conf.isrec } )
+        .Where( x => conf.deploy.InWhitelist( x ) );
+
+    foreach (var xmlFile in xmlFiles)
+    {
+        string fileName = Path.GetFileNameWithoutExtension( xmlFile );
+        string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
+        string fbsFile = Path.Combine( conf.GetFbsDir(), $"{fileName}.fbs" );
+
+
+        await Task.Run( () =>
+        {
+            DebugHelper.Print( $"处理Xml文件 {fileName}..." );
+            XmlDocument doc = LoadXml( xmlFile );
+            GenFbSchema( doc, xmlFile, conf );
+            SaveJsonAsync( doc, jsonFile );
+        } ).ConfigureAwait( false );
+
+        //await FlatcGenFbsIncCsharpCode( conf );
+
+        await Task.Run( async () =>
+        {
+            //FlatcGenCsharpCode( fbsFile, conf );
+            await FlatcJsonToBin( fileName, conf );
+            //FlatcBinToJson( fileName, conf );
+            CopyBinToDeployTargetDir( fileName,conf );
+            DebugHelper.PrintOk( $"处理Xml文件 {fileName} 结束！" );
+        } ).ConfigureAwait( false );
 
 
 
+    }
+
+    DebugHelper.Print( "DONE!" );
 }
 
-DebugHelper.Print( "DONE!" );
+void CopyBinToDeployTargetDir( string fileName,Conf conf )
+{
+    try
+    {
+        string src = $"{conf.GetFbsBinDir()}/{fileName}.bin";
+        string dst = $"{conf.GetDeployFbsBinDir()}/{fileName}.bytes";
+        File.Copy( src, dst, true );
+    }
+    catch(Exception ex)
+    {
+        DebugHelper.PrintError( ex.Message );
+    }
+}
 
 void GenFbSchema( XmlDocument doc, string xmlFile, Conf conf )
 {
@@ -76,13 +146,13 @@ void GenFbSchema( XmlDocument doc, string xmlFile, Conf conf )
 string GetFbsFile( string dir, string name ) => $"{dir}/{name}";
 
 
-void FlatcJsonToBin( string fileName, Conf conf )
+async Task FlatcJsonToBin( string fileName, Conf conf )
 {
     Process process = new Process();
     process.StartInfo.FileName = conf.GetFlatc();
     process.StartInfo.RedirectStandardError = true;
     process.StartInfo.RedirectStandardOutput = true;
-    process.StartInfo.CreateNoWindow = false;
+    process.StartInfo.CreateNoWindow = true;
     process.StartInfo.UseShellExecute = false;
     process.StartInfo.Arguments = $"-o {conf.GetFbsBinDir()} -I {conf.GetFbsIncDir()} -b {conf.GetFbsDir()}/{fileName}.fbs {conf.GetJsonDir()}/{fileName}.json";
 
@@ -90,13 +160,33 @@ void FlatcJsonToBin( string fileName, Conf conf )
     process.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[Json2Bin] {fileName} {e.Data}" );
     //DebugHelper.Print( $"[Json2Bin] 执行flatc json2bin {fileName}.json" );
     process.Start();
-    //return process.WaitForExitAsync();
+
+    // 读取标准输出
+    string output = process.StandardOutput.ReadToEnd();
+    // 读取错误输出
+    string error = process.StandardError.ReadToEnd();
+
+    await process.WaitForExitAsync(); // 等待命令执行完成
+
+    // 打印结果
+    //Console.WriteLine( "标准输出:" );
+    //Console.WriteLine( output );
+
+    if (!string.IsNullOrEmpty( error ))
+    {
+        DebugHelper.PrintError($"Error: {error}");
+    }
+
+    //Console.WriteLine( $"\n退出代码: {process.ExitCode}" );
+   
+
+
 
 }
 
 
 
-void FlatcBinToJson( string fileName, Conf conf )
+async Task FlatcBinToJson( string fileName, Conf conf )
 {
     Process process = new Process();
     process.StartInfo.FileName = conf.GetFlatc();
@@ -110,6 +200,22 @@ void FlatcBinToJson( string fileName, Conf conf )
     process.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[Bin2Json] {fileName} {e.Data}" );
     //DebugHelper.Print( $"[Json2Bin] 执行flatc json2bin {fileName}.json" );
     process.Start();
+
+    // 读取标准输出
+    string output = process.StandardOutput.ReadToEnd();
+    // 读取错误输出
+    string error = process.StandardError.ReadToEnd();
+
+    await process.WaitForExitAsync(); // 等待命令执行完成
+
+    // 打印结果
+    //Console.WriteLine( "标准输出:" );
+    //Console.WriteLine( output );
+
+    if (!string.IsNullOrEmpty( error ))
+    {
+        DebugHelper.PrintError( $"Error: {error}" );
+    }
 }
 
 string get_gen_cs_cmd( Conf conf, string fbsFile )
@@ -130,23 +236,27 @@ async Task FlatcGenFbsIncCsharpCode( Conf conf )
     {
 
         DebugHelper.PrintDebug( $"[GenC#] 处理文件:{fbsFile}" );
-        Process ps = new Process();
-        ps.StartInfo.FileName = conf.GetFlatc();
-        ps.StartInfo.RedirectStandardError = true;
-        ps.StartInfo.RedirectStandardOutput = true;
-        ps.StartInfo.UseShellExecute = false;
-        ps.StartInfo.Arguments = get_gen_cs_cmd( conf, fbsFile );
+        Process process = new Process();
+        process.StartInfo.FileName = conf.GetFlatc();
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.RedirectStandardOutput = true;
+        process.StartInfo.UseShellExecute = false;
+        process.StartInfo.Arguments = get_gen_cs_cmd( conf, fbsFile );
 
-        ps.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[GenC#] {fbsFile} {e.Data}" );
-        ps.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[GenC#] {fbsFile} {e.Data}" );
-        ps.Start();
-        string stdout = await ps.StandardOutput.ReadToEndAsync();
+        process.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[GenC#] {fbsFile} {e.Data}" );
+        process.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[GenC#] {fbsFile} {e.Data}" );
+        process.Start();
+ 
+        await process.WaitForExitAsync(); // 等待命令执行完成
+ 
+        string stdout = await process.StandardOutput.ReadToEndAsync();
+      
+        string stderr = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
         if (!string.IsNullOrEmpty( stdout ))
             DebugHelper.PrintWarning( stdout );
-        string stderr = await ps.StandardError.ReadToEndAsync();
         if (!string.IsNullOrEmpty( stderr ))
             DebugHelper.PrintError( stderr );
-        await ps.WaitForExitAsync();
     }
 }
 
@@ -280,7 +390,6 @@ Conf? LoadConf( string confFile = null )
 }
 
 
-
 public class Conf
 {
     public string workdir;
@@ -294,6 +403,37 @@ public class Conf
     public string flatc;
     public string csharpdir;
     public bool isthin;
+
+    public bool isDeployMode => deploy != null;
+
+    public class Deploy
+    {
+        /// <summary>
+        /// 默认基础目录
+        /// </summary>
+        public string basedir;
+        public string xmldir;
+ 
+        public string fbindir;
+
+        public List<string> whitelist;
+
+        public bool InWhitelist( string xml )
+        {
+            string name = Path.GetFileNameWithoutExtension( xml );
+            foreach (string e in whitelist)
+            {
+                if (e.Equals( name, StringComparison.OrdinalIgnoreCase ))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+    }
+    public Deploy? deploy;
+
 
     [JsonConstructor]
     public Conf()
@@ -343,6 +483,7 @@ public class Conf
     }
 
     public string WorkingDir => GetAbsDir( workdir );
+    public string DeployWorkingDir => GetAbsDir( deploy!.basedir );
 
 
     public string GetJsonDir()
@@ -359,15 +500,27 @@ public class Conf
     }
     public string GetFbsBinDir()
     {
-        if (Path.IsPathRooted( fbsincdir ))
-            return fbsincdir;
+        if (Path.IsPathRooted( fbindir ))
+            return fbindir;
         return $"{WorkingDir}/{fbindir}";
+    }
+    public string GetDeployFbsBinDir()
+    {
+        if (Path.IsPathRooted( deploy?.fbindir ))
+            return deploy.fbindir;
+        return $"{DeployWorkingDir}/{deploy?.fbindir}";
     }
     public string GetXmlDir()
     {
         if (Path.IsPathRooted( xmldir ))
             return xmldir;
         return $"{WorkingDir}/{xmldir}";
+    }
+    public string GetDeployXmlDir()
+    {
+        if (Path.IsPathRooted( deploy?.xmldir ))
+            return deploy.xmldir;
+        return $"{DeployWorkingDir}/{deploy?.xmldir}";
     }
     public string GetCsharpDir()
     {
@@ -420,6 +573,18 @@ public class Conf
         if (!Directory.Exists( vjsonDir ))
             Directory.CreateDirectory( vjsonDir );
     }
+
+
+
+}
+
+public class CmdOpts
+{
+    [Option( 'c', "config" )]
+    public string Conf { get; set; }
+
+    [Option( 'd', "deploy" )]
+    public bool Deploy { get; set; }
 
 }
 
