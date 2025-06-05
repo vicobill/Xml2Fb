@@ -79,7 +79,11 @@ public class FbSchemaGenerator
         }
 
 
-
+        if (node.Attributes == null)
+        {
+            DebugHelper.PrintWarning( $"{_xmlFile} 节点: `{node.NextSibling.OuterXml}` 附近有错误" );
+            return;
+        }
         // 处理自身节点属性，作为FbTable的字段形式
         foreach (XmlAttribute attr in node.Attributes)
         {
