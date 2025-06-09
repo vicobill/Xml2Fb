@@ -8,11 +8,11 @@ namespace Xml2Fb;
 /**
  * XML根节点作为命名空间；
  * XML文件名作为类型名称；
- * XML每个节点是一个Table; 
- * XML节点的属性，是Table的字段；通过解析属性的值，获取字段的类型 
- * 
+ * XML每个节点是一个Table;
+ * XML节点的属性，是Table的字段；通过解析属性的值，获取字段的类型
+ *
  * 1. 如果siblings 名称都相同，则合并属性（字段）
- * 
+ *
  */
 
 public class FbSchemaGenerator
@@ -42,12 +42,12 @@ public class FbSchemaGenerator
 
         return schemaBuilder.ToString();
     }
-    
+
     bool IsTablePreset(string tableName,out string presetTableName)
     { // tableName = BaseShopConfig_BallEquipment_Item
         // xmlConfig = BaseShopConfig
         presetTableName = null;
-        foreach(var e in Conf.Instance.table_preset)
+        foreach(var e in Conf.Instance.xml2fb.table_preset)
         {
             var m = Regex.Match( tableName, e.table );
             if(!m.Success)
@@ -63,7 +63,7 @@ public class FbSchemaGenerator
         string tableName = typeName.Capitalize();
         if (parentTable != null /*&& parentTable.Name != FbsTableName*/)
         {
-            tableName = $"{parentTable.Name}_{tableName}";            
+            tableName = $"{parentTable.Name}_{tableName}";
         }
 
         bool isPresetTable = IsTablePreset( tableName, out var presetTableName );
@@ -81,7 +81,7 @@ public class FbSchemaGenerator
 
         if (node.Attributes == null)
         {
-            DebugHelper.PrintWarning( $"{_xmlFile} 节点: `{node.NextSibling.OuterXml}` 附近有错误" );
+            DebugHelper.PrintWarning( $"{_xmlFile} has error arround node: `{node.NextSibling.OuterXml}` " );
             return;
         }
         // 处理自身节点属性，作为FbTable的字段形式
@@ -309,9 +309,9 @@ public class FbSchemaGenerator
 
             default:
                 {
-                    if (Conf.Instance != null && Conf.Instance.node_as_array != null && Conf.Instance.node_as_array.Count > 0)
+                    if (Conf.Instance != null && Conf.Instance.nodeAsArrays != null && Conf.Instance.nodeAsArrays.Count > 0)
                     {
-                        foreach (var e in Conf.Instance.node_as_array)
+                        foreach (var e in Conf.Instance.nodeAsArrays)
                         {
                             if (e.xml.ToLower() != domain)
                                 continue;

@@ -1,62 +1,54 @@
-
 {
-    "workdir":"E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets",
-    "xmldir":"xml",
-    "isrec": false,
-    "fbsdir":"gen/fbs",
-    "fbindir": "gen/bytes",
-    "jsondir":"gen/json",
-    "fbsincdir":"fbs-inc",
-    "csharpdir":"gen/cs",
-    "flatc":"bin/flatc.exe",
-    "pkgname":"Config.FbBin",
-    "isthin":true,
-
-    "node_as_array":[
-        {
-            "xml":"xml2excelforclient",
-            "node_paths":["item/starttime","item/endtime"]
-        },
-        {
-            "xml":"NewActivityConfig4",
-            "node_paths":["fullactivitycenter","fullactivitycenter/firstmenu","firstmenu/secondmenu","secondmenu/activity"]
-        }
-    ],
-
-    "table_preset":[
-        {
-            "table":"ShopConfig\\d*_BallEquipment_Item",
-            "preset":"ShopConfig_BallEquipment_Item"
-        }
-    ],
-
-
-    "deploy":{
-        "basedir":"E:\\project\\my\\qqdzz_minigame\\Assets\\Art\\Bundle",
-        "xmldir":"Config",
-        "fbindir":"EncryptConfig",
-        "whitelist":[
-            "LanguageConfig",
-            "DrawSkinConfig"
+    "xml2fb": {
+        "workdir": "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets",
+        "xmldir": "xml",
+        "isrec": false,
+        "fbsdir": "gen/fbs",
+        "fbindir": "gen/bytes",
+        "jsondir": "gen/json",
+        "fbsincdir": "fbs-inc",
+        "csharpdir": "gen/cs",
+        "flatc": "bin/flatc.exe",
+        "pkgname": "Config.FbBin",
+        "isthin": true,
+        "node_as_array": [
+            {
+                "xml": "xml2excelforclient",
+                "node_paths": [
+                    "item/starttime",
+                    "item/endtime"
+                ]
+            },
+            {
+                "xml": "NewActivityConfig4",
+                "node_paths": [
+                    "fullactivitycenter",
+                    "fullactivitycenter/firstmenu",
+                    "firstmenu/secondmenu",
+                    "secondmenu/activity"
+                ]
+            }
+        ],
+        "table_preset": [
+            {
+                "table": "ShopConfig\\d*_BallEquipment_Item",
+                "preset": "ShopConfig_BallEquipment_Item"
+            }
         ]
     },
-
-
-
-    "说明":[
-        "workdir: 是工作目录,xmldir,fbsdir,fbindir,jsondir都相对于此目录",
-        "   xmldir: 球球XML配置文件目录",
-        "   fbsdir: 生成的FlatBuffers Schema 目录",
-        "   fbindir: 生成的FlatBuffers 数据二进制目录，是XML数据的转储",
-        "   jsondir: 中间XML转JSON的文件，供比对参考",
-        "   fbsincdir: FlatBuffers 包含文件目录",
-        "isrec: 是否递归遍历xml目录",
-        "pkgname: 生成的csharp代码命名空间",
-        "flatc: flatc.exe",
-        "isthin: 生成C#代码是否简洁，如果为false则会按 gen-object-api, gen-json-serializer, gen-compare 等生成C#代码",
-        "node_as_array: 在xml中，有些项如 <item .../> 只有1项，但在其它同级节点，有多个 <item .../> <item .../>,然后再在另外同级节点也只有1项。",
-        "   这种交替出现数量不一致，会导致在flatbuffer中将其作为数组时，某些仅有一项而序列化失败。此时，应明确指定，即使仅有1项数据的节点，也应视为数组节点。"
-    ]
-
-
+    "unity": {
+        "basedir": "E:\\project\\my\\qqdzz_minigame",
+        "whitelist": [
+            "LanguageConfig",
+            "DrawSkinConfig"
+        ],
+        "develop": {
+            "csharpdir": "Assets/Script/Bob.Serialize/FlatBuffers/generated",
+            "fbindir": "Assets/Resources/Config"
+        },
+        "deploy": {
+            "xmldir": "Assets/Art/Bundle/Config",
+            "fbindir": "Assets/Art/Bundle/EncryptConfig"
+        }
+    }
 }

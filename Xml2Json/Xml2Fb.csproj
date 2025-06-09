@@ -10,6 +10,7 @@
     <IsAotCompatible>true</IsAotCompatible>
     <StripSymbols>true</StripSymbols>
     <PublishTrimmed>False</PublishTrimmed>
+    <CETCompat>false</CETCompat> <!--user mode apc-->
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.1" />

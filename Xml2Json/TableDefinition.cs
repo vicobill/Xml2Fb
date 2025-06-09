@@ -146,7 +146,7 @@ public class TableDefinition
                 field.Type = type;
                 return;
             }
-            
+
             if (FieldDefinition.IsVectorType(type) && !FieldDefinition.IsVectorType( field.Type ))
             {
                 field.Type = type;
@@ -165,7 +165,7 @@ public class TableDefinition
                 return;
             }
 
-            
+
         }
         else
         {
