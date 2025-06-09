@@ -162,9 +162,17 @@ void CopyBinToDevTargetDir( string fileName, Conf conf )
 {
     try
     {
+
         string src = $"{conf.GetFbinDir()}/{fileName}.bin";
         string dst = $"{conf.GetUnityDevFbinDir()}/{fileName}.bytes";
         File.Copy( src, dst, true );
+
+        // 如果同目录下存在同名xml文件，删除xml文件
+        string xml = $"{conf.GetUnityDevFbinDir()}/{fileName}.xml";
+        if (File.Exists( xml ))
+        {
+            File.Delete( xml );
+        }
     }
     catch (Exception ex)
     {
