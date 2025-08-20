@@ -25,7 +25,11 @@ namespace Xml2Fb.Shared
             }
             return false;
         }
-
+        /// <summary>
+        /// 对子节点进行分组
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="xmlElemGroups"></param>
         public static void GroupSubNodes(XmlNode node, out Dictionary<string, List<XmlNode>> xmlElemGroups )
         {
             xmlElemGroups = new Dictionary<string, List<XmlNode>>();

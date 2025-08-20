@@ -41,7 +41,7 @@ namespace Xml2Fb.Shared.FbDef
             {
                 GenStringVar( sb, index );
             }
-            else if (FbHelper.IsFbScalarType( FieldType ))
+            else if (FbScalarType.IsFbScalarType( FieldType ))
             {
                 GenScalarVar( sb, index );
             }

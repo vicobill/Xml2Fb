@@ -1,6 +1,7 @@
 using Newtonsoft.Json.Utilities;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +10,16 @@ namespace Xml2Fb.Shared
 {
     public static class StringEx
     {
+        public static string Posix(this string path)
+        {
+            return path.Replace( '\\', '/' );
+        }
+
+        public static string Standard(this string path)
+        {
+            return path.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
+        }
+
         public static bool IsBetween( this char c, char min, char max )
         => ( c - min ) <= ( max - min );
         public static bool IsAsciiLower( this char c ) => IsBetween( c, 'a', 'z' );
@@ -22,6 +33,11 @@ namespace Xml2Fb.Shared
             return c;
         }
 
+        /// <summary>
+        /// 首字母大写
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
         public static string Capitalize( this string s )
         {
             if (char.IsUpper( s[0] ))
@@ -32,6 +48,11 @@ namespace Xml2Fb.Shared
             return chars.ToString();
         }
 
+        /// <summary>
+        /// 首字母小写
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
         public static string LowerCapital(this string s )
         {
             if (!char.IsUpper( s[0] ))
@@ -42,6 +63,11 @@ namespace Xml2Fb.Shared
             return span.ToString();
         }
 
+        /// <summary>
+        /// 去掉空白字符串、将'-'转成'_'， 用于合规代码命名
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
         public static string Codize( this string s )
         {
             StringBuilder sb = new StringBuilder();
@@ -60,7 +86,11 @@ namespace Xml2Fb.Shared
             return sb.ToString();
         }
 
-
+        /// <summary>
+        /// 转成小写 snake_case
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
         public static string LowerSnakeCase( this string s )
         {
             Span<char> chars = s.ToCharArray();
@@ -112,9 +142,15 @@ namespace Xml2Fb.Shared
             return sb.ToString();
         }
 
-        public static string ToFieldName( this string s )
+        /// <summary>
+        /// 将字符串转成字段名
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static string ToFieldName( this string s ) // aBc-3z0
         {
-            string ret = s.Replace( '-', '_' );
+            
+            string ret = s.Replace( '-', '_' );// aBc_3z0
             if (ret.IndexOf( '_' ) == -1)
             {
                 ret = StringUtils.ToCamelCase( ret ).ToLower();
@@ -125,7 +161,11 @@ namespace Xml2Fb.Shared
             return ret;
         }
             
-
+        /// <summary>
+        /// 转成Fbs TableName，格式是首字母大写
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
         public static string ToTableName( this string s )
             => s.Codize().Capitalize();
 
