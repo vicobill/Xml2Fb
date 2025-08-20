@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Xml2Fb": {
+      "commandName": "Project",
+      "commandLineArgs": "--config E:\\\\project\\\\my\\\\vcob-tool\\\\Xml2FbSchemaGenerator\\\\Assets\\\\xml2fb.json"
+    }
+  }
+}
