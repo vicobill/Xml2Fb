@@ -26,7 +26,7 @@ public class FbAttributeDecl
     // native
     // attribute ident | "ident";
     public bool needQuote;
-    public string attrName;
+    public required string attrName;
 
     public override string ToString()
     {
@@ -44,5 +44,12 @@ public class FbAttributeDecl
         return sb.ToString();
     }
 
-
+    internal void MergeFrom( FbAttributeDecl other, bool overwrite )
+    {
+        if (overwrite)
+        {
+            needQuote = other.needQuote;
+            attrName = other.attrName;
+        }
+    }
 }

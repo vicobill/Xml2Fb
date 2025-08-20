@@ -10,20 +10,22 @@ namespace Xml2Fb.Shared
 {
     public static class StringEx
     {
-        public static string Posix(this string path)
+        public static string Posix( this string path )
         {
             return path.Replace( '\\', '/' );
         }
 
-        public static string Standard(this string path)
+        public static string Standard( this string path )
         {
             return path.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
         }
 
         public static bool IsBetween( this char c, char min, char max )
         => ( c - min ) <= ( max - min );
+
         public static bool IsAsciiLower( this char c ) => IsBetween( c, 'a', 'z' );
         public static bool IsAsciiUpper( this char c ) => IsBetween( c, 'A', 'Z' );
+
         public static char UpperChar( this char c )
         {
             if (IsAsciiLower( c ))
@@ -53,7 +55,7 @@ namespace Xml2Fb.Shared
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        public static string LowerCapital(this string s )
+        public static string LowerCapital( this string s )
         {
             if (!char.IsUpper( s[0] ))
                 return s;
@@ -149,18 +151,20 @@ namespace Xml2Fb.Shared
         /// <returns></returns>
         public static string ToFieldName( this string s ) // aBc-3z0
         {
-            
+
             string ret = s.Replace( '-', '_' );// aBc_3z0
             if (ret.IndexOf( '_' ) == -1)
             {
                 ret = StringUtils.ToCamelCase( ret ).ToLower();
-                return ret;
+            }
+            else
+            {
+                ret = ret.LowerCapital().ToLower();
             }
 
-            ret = ret.LowerCapital().ToLower();
-            return ret;
+            return CSharpKeywordAlias.Alias( ret );
         }
-            
+
         /// <summary>
         /// 转成Fbs TableName，格式是首字母大写
         /// </summary>
@@ -193,7 +197,7 @@ namespace Xml2Fb.Shared
                     sb.Append( words[i][1..( words[i].Length )] );
                     continue;
                 }
-                if (int.TryParse( words[i],out int x ))
+                if (int.TryParse( words[i], out int x ))
                 {
                     sb.Append( '_' ).Append( words[i] );
                     continue;

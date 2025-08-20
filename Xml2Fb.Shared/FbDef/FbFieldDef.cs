@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Xml2Fb.Shared.FbGrammar;
 
 namespace Xml2Fb.Shared.FbDef
 {
@@ -41,7 +42,7 @@ namespace Xml2Fb.Shared.FbDef
             {
                 GenStringVar( sb, index );
             }
-            else if (FbScalarType.IsFbScalarType( FieldType ))
+            else if ( FieldType.IsFbScalarType())
             {
                 GenScalarVar( sb, index );
             }

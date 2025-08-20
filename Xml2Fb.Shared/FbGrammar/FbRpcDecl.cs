@@ -69,6 +69,22 @@ public class FbRpcDecl
 
         return sb.ToString();
     }
+
+    internal void MergeFrom( FbRpcDecl other, bool overwrite )
+    {
+        foreach (var e in other.rpcMethodDecls)
+        {
+            var has = this.rpcMethodDecls.Find( x => x.methodName == e.methodName );
+            if (has != null)
+            {
+                has.MergeFrom( e, overwrite );
+            }
+            else
+            {
+                this.rpcMethodDecls.Add( e );
+            }
+        }
+    }
 }
 
 /// <summary>
@@ -95,5 +111,38 @@ internal class RpcMethodDecl
             .Append( ';' );
 
         return sb.ToString();
+    }
+
+    internal void MergeFrom( RpcMethodDecl other, bool overwrite )
+    {
+        if (methodName != other.methodName)
+        {
+            throw new ArgumentException( "methodName must be same!" );
+        }
+        if (overwrite)
+        {
+            argTypeName = other.argTypeName;
+            retTypeName = other.retTypeName;
+            metadata = other.metadata;
+        }
+        else
+        {
+            if (argTypeName != other.argTypeName)
+            {
+                DebugHelper.PrintWarning( $"arg type {argTypeName} not same as {other.argTypeName}" );
+            }
+            if (retTypeName != other.retTypeName)
+            {
+                DebugHelper.PrintWarning( $"ret type {retTypeName} not same as {other.retTypeName}" );
+            }
+            if (metadata == null)
+            {
+                metadata = other.metadata;
+            }
+            else
+            {
+                metadata.MergeFrom( other.metadata );
+            }
+        }
     }
 }

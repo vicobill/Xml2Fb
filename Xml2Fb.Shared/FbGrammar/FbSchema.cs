@@ -178,7 +178,7 @@ public class FbSchema
         return sb.ToString();
     }
 
-    internal FbSchema WithTypeDecl( FbTypeDecl typeDecl )
+    public FbSchema WithTypeDecl( FbTypeDecl typeDecl )
     {
         var has = typeDecls.Find( ( x ) => x.typeName == typeDecl.typeName );
         if (has != null)
@@ -192,7 +192,7 @@ public class FbSchema
         return this;
     }
 
-    internal FbSchema WithEnumDecl( FbEnumDecl enumDecl )
+    public FbSchema WithEnumDecl( FbEnumDecl enumDecl )
     {
         var has = enumDecls.Find( x => x.enumName == enumDecl.enumName );
         if (has != null)
@@ -225,6 +225,90 @@ public class FbSchema
         }
         return false;
     }
+
+    public void MergeFrom(FbSchema other, bool overwrite = true)
+    {
+        MergeIncludes( other.includeDecls, overwrite );
+        MergeTypeDecls(other.typeDecls, overwrite );
+        MergeEnumDecls(other.enumDecls, overwrite );
+        MergeAttrDecls( other.attributeDecls, overwrite );
+        MergeRpcDecls(other.rpcDecls, overwrite );
+        //MergeObjectDecls( other.objectDecls, overwrite );
+    }
+
+    void MergeIncludes(List<IncludeDecl> otherIncludeDecls, bool overwrite = true)
+    {
+        foreach (var e in otherIncludeDecls)
+        {
+            var has = this.includeDecls.Find( x => x.fileName == e.fileName );
+            if (has == null)
+            {
+                this.includeDecls.Add( e );
+            }
+        }
+    }
+    void MergeTypeDecls(List<FbTypeDecl> otherTypeDecls, bool overwrite = true)
+    {
+        foreach(var e in otherTypeDecls)
+        {
+            var has = this.typeDecls.Find(x => x.typeName == e.typeName );
+            if (has != null)
+            {
+                has.MergeFrom( e );
+            }else
+            {
+                this.typeDecls.Add( e );
+            }
+        }
+    }
+
+    void MergeEnumDecls(List<FbEnumDecl> otherEnumDecls, bool overwrite = true)
+    {
+        foreach(var e in otherEnumDecls)
+        {
+            var has = this.enumDecls.Find(x => x.enumName ==  e.enumName );
+            if (has != null)
+            {
+                has.MergeFrom( e,overwrite );
+            }else
+            {
+                this.enumDecls.Add( e );
+            }
+        }
+    }
+
+    void MergeAttrDecls(List<FbAttributeDecl> otherAttrDecls, bool overwrite = true)
+    {
+        foreach(var e in otherAttrDecls)
+        {
+            var has = this.attributeDecls.Find(x=>x.attrName == e.attrName );
+            if (has != null)
+            {
+                has.MergeFrom(e,overwrite );
+            }else
+            {
+                this.attributeDecls.Add( e );
+            }
+        }
+    }
+
+    void MergeRpcDecls( List<FbRpcDecl> otherRpcDecls, bool overwrite = true )
+    {
+        foreach (var e in otherRpcDecls)
+        {
+            var has = this.rpcDecls.Find( x => x.serviceName == e.serviceName );
+            if (has != null)
+            {
+                has.MergeFrom( e, overwrite );
+            }
+            else
+            {
+                this.rpcDecls.Add( e );
+            }
+        }
+    }
+     
+
 }
 
 /// <summary>

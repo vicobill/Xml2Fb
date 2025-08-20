@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace Xml2Fb.Shared.FbGrammar;
 
 internal static class Example
