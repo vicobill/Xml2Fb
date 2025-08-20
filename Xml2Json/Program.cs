@@ -10,10 +10,13 @@ using System.Xml;
 using Xml2Fb;
 using Xml2Fb.Shared;
 using CommandLine;
+using Xml2Fb.FbGrammar;
 
 
 
+//Example.Write( Example.Cons() );
 
+//return;
 
 string confFile = "xml2fb.json";
 bool isDeployMode = false;
@@ -49,10 +52,16 @@ if (!isDeployMode)
     DebugHelper.Print("----------------- Run in Develop Mode -----------------");
     DebugHelper.Print("-------------------------------------------------------");
 
+    string xmldir = conf.GetXmlDir().Standard();
+    if (!Directory.Exists( xmldir ))
+    {
+        throw new DirectoryNotFoundException( $"{xmldir} not found!" );
+    }
+
     IEnumerable<string>? xmlFiles = Directory.EnumerateFiles(
-            conf.GetXmlDir(), "*.xml",
+            xmldir, "*.xml",
             new EnumerationOptions { RecurseSubdirectories = conf.xml2fb.isrec }
-        ).Where( x => conf.InWhitelist( x ) );
+        ).Where(x => conf.InWhitelist(x));
 
 
     foreach (var xmlFile in xmlFiles)
@@ -197,9 +206,9 @@ void CopyBinToDeployTargetDir( string fileName, Conf conf )
 void GenFbSchema( XmlDocument doc, string xmlFile, Conf conf )
 {
     //DebugHelper.Print( $"[GenFbs] 开始生成FBS文件： {xmlFile}" );
-    var schemaGenerator = new FbSchemaGenerator( xmlFile );
+    var schemaGenerator = new SchemaGenerator( xmlFile );
     var schema = schemaGenerator.GenerateSchema( doc );
-    string fbs = GetFbsFile( conf.GetFbsDir(), schemaGenerator.FbsFile );
+    string fbs = GetFbsFile( conf.GetFbsDir(), schemaGenerator.FbsFileName );
     //DebugHelper.PrintDebug( $"[GenFbs] 写入FBS文件 {fbs} " );
     File.WriteAllText( fbs, schema );
 }

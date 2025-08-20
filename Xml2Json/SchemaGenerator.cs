@@ -1,69 +1,59 @@
 using System.Text.RegularExpressions;
 using System.Xml;
+using Xml2Fb.FbGrammar;
 using Xml2Fb.Shared;
 using Xml2Fb.Shared.FbDef;
 
 namespace Xml2Fb;
 
-/**
- * XML根节点作为命名空间；
- * XML文件名作为类型名称；
- * XML每个节点是一个Table;
- * XML节点的属性，是Table的字段；通过解析属性的值，获取字段的类型
- *
- * 1. 如果siblings 名称都相同，则合并属性（字段）
- *
- */
 
-public class FbSchemaGenerator
+/// <summary>
+/// 根据XML文件，生成 Fbs Schema 文件
+/// 在生成fbs以及合规的csharp代码时，需要处理名称转换：
+/// 1. 字段名称可能是C#关键字，需要处理；
+/// 2. 转成C#代码可用的名称，如'-' 需要转成 '_'
+///
+/// 在Xml转fbs过程中：
+/// 1. 
+/// </summary>
+public class SchemaGenerator
 {
-    string _xmlFile;
-    string _fbsFile;
-    public string FbsFile => _fbsFile;
-    public string FbsTableName { get; private set; }
+    string _xmlFilePath;
+    string _fbsFileName;
+    public string FbsFileName => _fbsFileName;
+    public string FbsRootTableName { get; private set; }
 
-    public FbSchemaGenerator( string xmlFile )
+    public SchemaGenerator( string xmlFilePath )
     {
-        _xmlFile = xmlFile;
-        FbsTableName = Path.GetFileNameWithoutExtension( _xmlFile );
-        _fbsFile = Path.GetFileName( xmlFile ).Replace( ".xml", ".fbs" );
-        CurrentXmlDocName = FbsTableName;
+        _xmlFilePath = xmlFilePath;
+        string name = Path.GetFileNameWithoutExtension( _xmlFilePath );
+        _fbsFileName = $"{name}.fbs";
+
+        FbsRootTableName = name.ToTableName();
+
+        CurrentXmlDocName = name;
     }
 
-
+    /// <summary>
+    /// 解析xml文件，生成fbs文件内容
+    /// </summary>
+    /// <param name="doc">xml文件</param>
+    /// <returns></returns>
     public string GenerateSchema( XmlDocument doc )
     {
-        string tableName = Path.GetFileNameWithoutExtension( _xmlFile );
-
         var rootElement = doc.DocumentElement;
-        var schemaBuilder = new SchemaBuilder();
-        schemaBuilder.RootType = FbsTableName;
-        ProcessElement( rootElement, schemaBuilder, FbsTableName, null );
+        SchemaBuilder builder = new SchemaBuilder( FbsRootTableName );
+        ProcessElement( rootElement, builder, FbsRootTableName, null );
 
-        return schemaBuilder.ToString();
+        return builder.ToString();
     }
 
-    bool IsTablePreset(string tableName,out string presetTableName)
-    { // tableName = BaseShopConfig_BallEquipment_Item
-        // xmlConfig = BaseShopConfig
-        presetTableName = null;
-        foreach(var e in Conf.Instance.xml2fb.table_preset)
-        {
-            var m = Regex.Match( tableName, e.table );
-            if(!m.Success)
-                continue;
-            presetTableName = e.preset;
-            return true;
-        }
-        return false;
-    }
-
-    void ProcessElement( XmlNode node, SchemaBuilder builder, string typeName, TableDefinition parentTable )
+    void ProcessElement( XmlNode node, SchemaBuilder builder, string curTableName, FbTypeDecl? parentTable )
     {
-        string tableName = typeName.Capitalize();
-        if (parentTable != null /*&& parentTable.Name != FbsTableName*/)
+        string tableName = curTableName.ToTableName();
+        if (parentTable != null)
         {
-            tableName = $"{parentTable.Name}_{tableName}";
+            tableName = $"{parentTable.typeName}_{tableName}"; // 衔接父表名称
         }
 
         bool isPresetTable = IsTablePreset( tableName, out var presetTableName );
@@ -73,31 +63,41 @@ public class FbSchemaGenerator
             tableName = presetTableName;
         }
 
-        if (!builder.TryPeek( tableName, out TableDefinition table ))
+        // 如果尚无此名称的表定义，新增表
+        if (!builder.TryPeek( tableName, out FbTypeDecl? table ))
         {
-            table = new TableDefinition( tableName );
+            table = new FbTypeDecl
+            {
+                isStruct = false,
+                typeName = tableName
+            };
         }
 
 
         if (node.Attributes == null)
         {
-            DebugHelper.PrintWarning( $"{_xmlFile} has error arround node: `{node.NextSibling.OuterXml}` " );
+            DebugHelper.PrintWarning( $"{_xmlFilePath} has error arround node: `{node.NextSibling.OuterXml}` " );
             return;
         }
         // 处理自身节点属性，作为FbTable的字段形式
         foreach (XmlAttribute attr in node.Attributes)
         {
-            table.AddField( "attr_" + attr.Name, FbHelper.GetFbTypeFromXmlValue( attr.Value, attr.Name ) );
+            // 所有 XmlAttribute 都前缀 attr_
+            table!.WithField(
+                fieldName: $"attr_{attr.Name}".ToFieldName(),
+                typeName: FbHelper.GetFbTypeFromXmlValue( attr.Value, attr.Name )
+            );
         }
 
 
 
-        // 处理子节点，按节点名称分组
-        // 每个组，作为FbTable的每个数组字段
-
         if (node.ChildNodes.Count == 1 && node.FirstChild.NodeType == XmlNodeType.Text) // <id> 1234 </id>
         {
-            table.AddField( $"{typeName}_value", FbHelper.GetFbTypeFromXmlValue( node.FirstChild.Value, node.FirstChild.Name ) );
+            // 普通形如 <id> 1234 </id> 的xml节点，作为特殊字段取值
+            table!.WithField(
+                $"{curTableName}_value".ToFieldName(),
+                FbHelper.GetFbTypeFromXmlValue( node.FirstChild.Value, node.FirstChild.Name )
+            );
             builder.AddTable( table );
             return;
         }
@@ -113,39 +113,42 @@ public class FbSchemaGenerator
         {
             string xmlNodeName = kv.Key;
             List<XmlNode> xmlNodes = kv.Value;
-            string subTableName = $"{tableName}_{xmlNodeName.Capitalize()}";
-            if (IsTablePreset(subTableName,out string presetSubTableName ))
+            // 当前表为父表，子节点为子表
+            string subTableName = $"{tableName}_{xmlNodeName.ToTableName()}";
+
+            if (IsTablePreset( subTableName, out string presetSubTableName ))
             {
                 subTableName = presetSubTableName;
                 presetTableXmlNodes.Add( xmlNodeName );
             }
+
             if (xmlNodes.Count > 1)
             {
                 if (AllIsTextNodes( xmlNodes ))
                 {
-                    table.AddVectorField( xmlNodeName, "string" );
+                    AddVectorField( xmlNodeName, "string", table! );
                 }
                 else
                 {
-                    table.AddVectorField( xmlNodeName, subTableName );
+                    AddVectorField(xmlNodeName, subTableName, table! );
                 }
             }
             else
             {
                 if (IsNodeAsArray( xmlNodes.First() ))
                 {
-                    table.AddVectorField( xmlNodeName, subTableName );
+                    AddVectorField( xmlNodeName, subTableName, table! );
                 }
                 else
                 {
                     if (XmlHelper.IsTextNode( xmlNodes[0], out XmlNode child ))
                     {
-                        table.AddField( xmlNodeName, "string" );
+                        table!.WithField( xmlNodeName, "string" );
                     }
                     else
                     {
 
-                        table.AddField( xmlNodeName, subTableName );
+                        table!.WithField( xmlNodeName, subTableName );
                     }
                 }
             }
@@ -156,8 +159,10 @@ public class FbSchemaGenerator
         {
             if (kv.Value.Count == 1 && XmlHelper.IsTextNode( kv.Value.First(), out var _ ))
                 continue;
+
             if (presetTableXmlNodes.IndexOf( kv.Key ) >= 0)
                 continue;
+
             foreach (XmlNode subNode in kv.Value)
             {
                 ProcessElement( subNode, builder, kv.Key, table );
@@ -166,8 +171,25 @@ public class FbSchemaGenerator
         }
 
 
-        builder.AddTable( table );
+        builder.AddTable( table! );
     }
+
+    
+    bool IsTablePreset( string tableName, out string presetTableName )
+    { // tableName = BaseShopConfig_BallEquipment_Item
+        // xmlConfig = BaseShopConfig
+        presetTableName = null;
+        foreach (var e in Conf.Instance.xml2fb.table_preset)
+        {
+            var m = Regex.Match( tableName, e.table );
+            if (!m.Success)
+                continue;
+            presetTableName = e.preset;
+            return true;
+        }
+        return false;
+    }
+
 
     bool AllIsTextNodes( List<XmlNode> nodes )
     {
@@ -332,6 +354,32 @@ public class FbSchemaGenerator
 
 
         return false;
+    }
+
+    internal static void AddVectorField(string xmlNodeName, string subTableName, FbTypeDecl table)
+    {
+        string fieldName = FbScalarType.ConsVectorFieldName(xmlNodeName);
+        string typeName = FbScalarType.ConsVectorTypeName( subTableName );
+
+        table.WithField(fieldName, typeName);
+    }
+
+    /// <summary>
+    /// 从Xml自闭节点生成Fbs table
+    /// </summary>
+    /// <param name="node"></param>
+    /// <returns></returns>
+    internal static FbTypeDecl FromSelfCloseNode(XmlElement node)
+    {
+        FbTypeDecl table = new FbTypeDecl
+        {
+            typeName = node.Name.ToTableName(),
+        };
+        foreach(XmlAttribute attrib in node.Attributes)
+        {
+            table.WithField(attrib.Name.ToFieldName(), FbHelper.GetFbTypeFromXmlValue( attrib.Value, attrib.Name ) );
+        }
+        return table;
     }
 
 }

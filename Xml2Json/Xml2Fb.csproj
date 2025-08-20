@@ -13,6 +13,9 @@
     <CETCompat>false</CETCompat> <!--user mode apc-->
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="FbGrammar\example.fbs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
   </ItemGroup>
   <ItemGroup>

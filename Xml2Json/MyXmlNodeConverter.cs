@@ -47,7 +47,7 @@ namespace Xml2Fb
         protected override bool IsNodeAsArray( string nodeNamePath )
         {
             string lower = nodeNamePath.ToLower();
-            if (FbSchemaGenerator.IsNodeAsArray( nodeNamePath ))
+            if (SchemaGenerator.IsNodeAsArray( nodeNamePath ))
                 return true;
             
             return base.IsNodeAsArray( nodeNamePath );
