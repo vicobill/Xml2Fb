@@ -1,17 +1,23 @@
+using CommandLine;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
-using System;
 using System.Diagnostics;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Schema;
 using Xml2Fb;
 using Xml2Fb.Shared;
-using CommandLine;
-using Xml2Fb.FbGrammar;
 
+
+//GroupSubXmlFiles( new List<string> {
+//    "C:/a/b/ShopConfig.xml",
+//    "C:/a/b/ShopConfig1.xml",
+//    "C:/a/b/ShopConfig2.xml",
+//    "C:/a/b/ShopConfig3.xml",
+//    "C:/a/b/BaseShopConfig.xml",
+//    "C:/a/b/ActivityConfig.xml",
+//}, out var result );
 
 
 //Example.Write( Example.Cons() );
@@ -28,9 +34,6 @@ Parser.Default.ParseArguments<CmdOpts>( args )
         isDeployMode = opts.Deploy;
     } );
 
-// 加载配置文件
-
-//confFile = "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets\\xml2fb.json";
 
 Conf? conf = LoadConf( confFile );
 if (conf == null)
@@ -58,47 +61,93 @@ if (!isDeployMode)
         throw new DirectoryNotFoundException( $"{xmldir} not found!" );
     }
 
-    IEnumerable<string>? xmlFiles = Directory.EnumerateFiles(
+    List<string>? xmlFiles = Directory.EnumerateFiles(
             xmldir, "*.xml",
             new EnumerationOptions { RecurseSubdirectories = conf.xml2fb.isrec }
-        ).Where(x => conf.InWhitelist(x));
+        ).Where(x => conf.InWhitelist(x)).ToList();
 
-
-    foreach (var xmlFile in xmlFiles)
+    bool isgrouped = GroupSubXmlFiles( xmlFiles, out var groups,out var scatterXmlFiles );
+    if (!isgrouped)
     {
-        //string xmlFile = $"{conf.GetXmlDir()}/BlindBoxConfig.xml";
-        string fileName = Path.GetFileNameWithoutExtension( xmlFile );
-        string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
-        string fbsFile = Path.Combine( conf.GetFbsDir(), $"{fileName}.fbs" );
-
-
-        await Task.Run( () =>
+        foreach (var xmlFile in xmlFiles)
         {
-            DebugHelper.Print( $"Process Xml file: {fileName}.xml" );
-            XmlDocument doc = LoadXml( xmlFile );
-            GenFbSchema( doc, xmlFile, conf );
-            SaveJsonAsync( doc, jsonFile );
-        } ).ConfigureAwait( false );
-
-        await FlatcGenFbsIncCsharpCode( conf );
+            //string xmlFile = $"{conf.GetXmlDir()}/BlindBoxConfig.xml";
+            string fileName = Path.GetFileNameWithoutExtension( xmlFile );
+            string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
+            string fbsFile = Path.Combine( conf.GetFbsDir(), $"{fileName}.fbs" );
 
 
-        await Task.Run( async () =>
+            await Task.Run( () =>
+            {
+                DebugHelper.Print( $"Process Xml file: {fileName}.xml" );
+                XmlDocument doc = LoadXml( xmlFile );
+                GenFbSchema( doc, xmlFile, conf );
+                SaveJsonAsync( doc, jsonFile );
+            } ).ConfigureAwait( false );
+
+            await FlatcGenFbsIncCsharpCode( conf );
+
+
+            await Task.Run( async () =>
+            {
+                await FlatcGenCsharpCode( fbsFile, conf );
+                CopyCsharpToUnityTargetDir( fbsFile, conf );
+
+                await FlatcJsonToBin( fileName, conf );
+                CopyBinToDevTargetDir( fileName, conf );
+                FlatcBinToJson( fileName, conf );
+                DebugHelper.PrintOk( $"Done Xml file {fileName}.xml !" );
+            } ).ConfigureAwait( false );
+
+
+
+        }
+
+        DebugHelper.Print( "DONE!" );
+    }else
+    {
+        /*
+         分组的表格，类型相同，
+         */
+        Parallel.ForEach( groups, kv =>
         {
-            await FlatcGenCsharpCode( fbsFile, conf );
-            CopyCsharpToUnityTargetDir( fbsFile, conf );
 
-            await FlatcJsonToBin( fileName, conf );
-            CopyBinToDevTargetDir( fileName, conf );
-            FlatcBinToJson( fileName, conf );
-            DebugHelper.PrintOk( $"Done Xml file {fileName}.xml !" );
-        } ).ConfigureAwait( false );
+        } );
+
+        Parallel.ForEach( scatterXmlFiles,async( xmlFile) =>
+        {
+            //string xmlFile = $"{conf.GetXmlDir()}/BlindBoxConfig.xml";
+            string fileName = Path.GetFileNameWithoutExtension( xmlFile );
+            string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
+            string fbsFile = Path.Combine( conf.GetFbsDir(), $"{fileName}.fbs" );
 
 
+            await Task.Run( () =>
+            {
+                DebugHelper.Print( $"Process Xml file: {fileName}.xml" );
+                XmlDocument doc = LoadXml( xmlFile );
+                GenFbSchema( doc, xmlFile, conf );
+                SaveJsonAsync( doc, jsonFile );
+            } ).ConfigureAwait( false );
 
+            await FlatcGenFbsIncCsharpCode( conf );
+
+
+            await Task.Run( async () =>
+            {
+                await FlatcGenCsharpCode( fbsFile, conf );
+                CopyCsharpToUnityTargetDir( fbsFile, conf );
+
+                await FlatcJsonToBin( fileName, conf );
+                CopyBinToDevTargetDir( fileName, conf );
+                FlatcBinToJson( fileName, conf );
+                DebugHelper.PrintOk( $"Done Xml file {fileName}.xml !" );
+            } ).ConfigureAwait( false );
+
+        } );
+
+        DebugHelper.Print( "DONE!" );
     }
-
-    DebugHelper.Print( "DONE!" );
 }
 /* 发布模式下，拷贝xml为fbin，放置在目标目录下
  * 不处理csharp */
@@ -144,6 +193,55 @@ else
     }
 
     DebugHelper.Print( "DONE!" );
+}
+
+
+bool GroupSubXmlFiles( List<string> xmlFiles, out Dictionary<string, List<string>>? grouped,out List<string> scatterXmlFiles )
+{
+    grouped = null;
+    scatterXmlFiles = new List<string>();
+
+    for(int i =0; i < xmlFiles.Count; ++i)
+    {
+        string xmlFile = xmlFiles[i];   
+        string fileName = Path.GetFileNameWithoutExtension( xmlFile );
+        Match m = Regex.Match( fileName, @"(\w+)(\d+)" ); // ShopConfig1, ... ShopConfig5
+        if (m != null && m.Success)
+        {
+            
+            string main = m.Groups[1].Value; // 主表名 ShopConfig
+
+            if (grouped == null)
+            {
+                grouped = new Dictionary<string, List<string>>();
+                grouped[main] = new List<string> { xmlFile };
+            }
+            else if (!grouped.TryGetValue( main, out var list ))
+            {
+                grouped[main] = new List<string> { xmlFile };
+            }
+            else
+            {
+                grouped[main].Add( xmlFile );
+            }
+
+            // 获取主xml路径
+            string matchstr = m.Groups[0].Value; // 匹配 ShopConfig1
+            string mainXmlFile = xmlFile.Replace( matchstr, main );
+            if (!grouped[main].Contains( mainXmlFile ))
+            {
+                grouped[main].Add( mainXmlFile );
+                scatterXmlFiles.Remove( mainXmlFile );
+            }
+        }
+        else
+        {
+            scatterXmlFiles.Add( xmlFile );
+        }
+
+
+    }
+    return grouped != null && grouped.Count > 0;
 }
 
 string GetFbsGeneratedCsharpName( string fbsFile )

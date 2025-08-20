@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 using System.Xml;
-using Xml2Fb.FbGrammar;
 using Xml2Fb.Shared;
 using Xml2Fb.Shared.FbDef;
+using Xml2Fb.Shared.FbGrammar;
 
 namespace Xml2Fb;
 
@@ -143,12 +143,12 @@ public class SchemaGenerator
                 {
                     if (XmlHelper.IsTextNode( xmlNodes[0], out XmlNode child ))
                     {
-                        table!.WithField( xmlNodeName, "string" );
+                        table!.WithField( xmlNodeName.ToFieldName(), "string" );
                     }
                     else
                     {
 
-                        table!.WithField( xmlNodeName, subTableName );
+                        table!.WithField( xmlNodeName.ToFieldName(), subTableName );
                     }
                 }
             }
