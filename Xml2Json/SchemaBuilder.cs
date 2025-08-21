@@ -16,6 +16,8 @@ class SchemaBuilder
 
     private FbSchema _schema;
 
+    public FbSchema FbSchema => _schema;
+
     private readonly Stack<FbTypeDecl> _context = new();
 
     public void AddTable( FbTypeDecl table )

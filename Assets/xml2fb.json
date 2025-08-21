@@ -1,8 +1,8 @@
 {
     "xml2fb": {
-        "workdir": "E:\\project\\my-tools\\Xml2FbSchemaGenerator\\Assets",
+        "workdir": "E:\\project\\my\\vcob-tool\\Xml2FbSchemaGenerator\\Assets",
         "xmldir": "xml",
-        "isrec": false,
+        "isrec": true,
         "fbsdir": "gen/fbs",
         "fbindir": "gen/bytes",
         "jsondir": "gen/json",
@@ -34,13 +34,21 @@
                 "table": "ShopConfig\\d*_BallEquipment_Item",
                 "preset": "ShopConfig_BallEquipment_Item"
             }
-        ]
+        ],
+		"group_xml":[
+			{ "main": "ShopConfig", "sub_names":["ShopConfig1", "ShopConfig2", "ShopConfig3", "ShopConfig4", "ShopConfig5"], "use_custom_fbs":null },
+			{ "main": "NewActivityConfig", "sub_names": ["NewActivityConfig1", "NewActivityConfig2","NewActivityConfig3","NewActivityConfig4","NewActivityConfig5"], "use_custom_fbs":null }
+		]
     },
     "unity": {
         "basedir": "E:\\project\\my\\qqdzz_minigame",
         "whitelist": [
-            "LanguageConfig",
-            "DrawSkinConfig"
+			"ShopConfig",
+			"ShopConfig1",
+			"ShopConfig2",
+			"ShopConfig3",
+			"ShopConfig4",
+			"ShopConfig5"
         ],
         "develop": {
             "csharpdir": "Assets/Script/Bob.Serialize/FlatBuffers/generated",

@@ -23,16 +23,28 @@ public class SchemaGenerator
     public string FbsFileName => _fbsFileName;
     public string FbsRootTableName { get; private set; }
 
-    public SchemaGenerator( string xmlFilePath )
+    public SchemaGenerator( string xmlFilePath, string? mainTableName = null )
     {
         _xmlFilePath = xmlFilePath;
         string name = Path.GetFileNameWithoutExtension( _xmlFilePath );
-        _fbsFileName = $"{name}.fbs";
-
-        FbsRootTableName = name.ToTableName();
-
         CurrentXmlDocName = name;
+
+        if (string.IsNullOrEmpty( mainTableName ))
+        {
+            _fbsFileName = $"{name}.fbs";
+            FbsRootTableName = name.ToTableName();
+        }
+        else
+        {
+            _fbsFileName = $"{mainTableName}.fbs";
+            FbsRootTableName = mainTableName.ToTableName();
+        }
+
+
     }
+
+    SchemaBuilder _schemaBuilder;
+    public FbSchema FbSchema => _schemaBuilder.FbSchema;
 
     /// <summary>
     /// 解析xml文件，生成fbs文件内容
@@ -42,10 +54,10 @@ public class SchemaGenerator
     public string GenerateSchema( XmlDocument doc )
     {
         var rootElement = doc.DocumentElement;
-        SchemaBuilder builder = new SchemaBuilder( FbsRootTableName );
-        ProcessElement( rootElement, builder, FbsRootTableName, null );
+        _schemaBuilder = new SchemaBuilder( FbsRootTableName );
+        ProcessElement( rootElement, _schemaBuilder, FbsRootTableName, null );
 
-        return builder.ToString();
+        return _schemaBuilder.ToString();
     }
 
     void ProcessElement( XmlNode node, SchemaBuilder builder, string curTableName, FbTypeDecl? parentTable )
@@ -130,7 +142,7 @@ public class SchemaGenerator
                 }
                 else
                 {
-                    AddVectorField(xmlNodeName, subTableName, table! );
+                    AddVectorField( xmlNodeName, subTableName, table! );
                 }
             }
             else
@@ -174,7 +186,7 @@ public class SchemaGenerator
         builder.AddTable( table! );
     }
 
-    
+
     bool IsTablePreset( string tableName, out string presetTableName )
     { // tableName = BaseShopConfig_BallEquipment_Item
         // xmlConfig = BaseShopConfig
@@ -356,12 +368,12 @@ public class SchemaGenerator
         return false;
     }
 
-    internal static void AddVectorField(string xmlNodeName, string subTableName, FbTypeDecl table)
+    internal static void AddVectorField( string xmlNodeName, string subTableName, FbTypeDecl table )
     {
-        string fieldName = FbScalarType.ConsVectorFieldName(xmlNodeName);
+        string fieldName = FbScalarType.ConsVectorFieldName( xmlNodeName );
         string typeName = FbScalarType.ConsVectorTypeName( subTableName );
 
-        table.WithField(fieldName, typeName);
+        table.WithField( fieldName, typeName );
     }
 
     /// <summary>
@@ -369,15 +381,15 @@ public class SchemaGenerator
     /// </summary>
     /// <param name="node"></param>
     /// <returns></returns>
-    internal static FbTypeDecl FromSelfCloseNode(XmlElement node)
+    internal static FbTypeDecl FromSelfCloseNode( XmlElement node )
     {
         FbTypeDecl table = new FbTypeDecl
         {
             typeName = node.Name.ToTableName(),
         };
-        foreach(XmlAttribute attrib in node.Attributes)
+        foreach (XmlAttribute attrib in node.Attributes)
         {
-            table.WithField(attrib.Name.ToFieldName(), FbHelper.GetFbTypeFromXmlValue( attrib.Value, attrib.Name ) );
+            table.WithField( attrib.Name.ToFieldName(), FbHelper.GetFbTypeFromXmlValue( attrib.Value, attrib.Name ) );
         }
         return table;
     }

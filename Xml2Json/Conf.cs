@@ -33,8 +33,9 @@ public class Conf
         public List<string>? XmlDirNames;
         public List<NodeAsArray>? node_as_array;
         public List<TablePreset>? table_preset;
+        public List<GroupXml>? group_xml;
 
-        
+
         public static Xml2FbConf GetDefault()
         {
             Xml2FbConf c = new Xml2FbConf();
@@ -62,6 +63,13 @@ public class Conf
     {
         public string table;
         public string preset;
+    }
+
+    public class GroupXml
+    {
+        public string main;
+        public List<string> sub_names;
+        public string? use_custom_fbs;
     }
 
     public class UnityConf
@@ -94,6 +102,7 @@ public class Conf
 
 
     public bool isDeployMode { get; set; }
+    public bool isStart { get; set; }
     public int xmlDirNameIndex { get; set; }
 
     public bool InWhitelist( string filename )
@@ -239,7 +248,7 @@ public class Conf
     }
 
 
-   
+
 
 
     public void EnsureDir()
@@ -293,6 +302,16 @@ public class Conf
 
     }
 
+    internal bool FindManualFbsFile( string mainName, out string? path )
+    {
+        path = null;
+        GroupXml? has = xml2fb?.group_xml?.Find( x => x.main == mainName );
+        if (has != null && !string.IsNullOrEmpty( has.use_custom_fbs ))
+        {
+            path = has.use_custom_fbs;
+            return true;
+        }
+        return false;
 
-
+    }
 }
