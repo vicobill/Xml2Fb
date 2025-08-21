@@ -97,7 +97,8 @@ catch (Exception ex)
 
 async Task ProcessScatterXmlFiles_Develop( List<string> scatterXmlFiles, Conf conf )
 {
-    foreach (var xmlFile in scatterXmlFiles)
+    //foreach (var xmlFile in scatterXmlFiles)
+    Parallel.ForEach( scatterXmlFiles, async (xmlFile) =>
     {
         string fileName = Path.GetFileNameWithoutExtension( xmlFile );
         string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
@@ -120,7 +121,7 @@ async Task ProcessScatterXmlFiles_Develop( List<string> scatterXmlFiles, Conf co
         await FlatcBinToJson( fileName, conf );
         DebugHelper.PrintOk( $"Done Xml file {fileName}.xml !" );
 
-    }
+    } );
 }
 /* 发布模式下，拷贝xml为fbin，放置在目标目录下
  * 不处理csharp */
@@ -156,7 +157,8 @@ async Task ProcessScatterXmlFiles_Deploy( List<string> scatterXmlFiles, Conf con
 
 async Task ProcessGroupXmlFiles_Develop( Dictionary<string, List<string>> groups, Conf conf )
 {
-    foreach (var group in groups)
+    //foreach (var group in groups)
+    Parallel.ForEach( groups, async ( group ) =>
     {
         string mainName = group.Key;
 
@@ -209,7 +211,7 @@ async Task ProcessGroupXmlFiles_Develop( Dictionary<string, List<string>> groups
             CopyBinToDevTargetDir( fileName, conf );
             await FlatcBinToJson( fileName, conf, mainName );
         }
-    }
+    } );
 }
 
 
