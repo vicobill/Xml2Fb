@@ -27,7 +27,7 @@ public class SchemaGenerator
     {
         _xmlFilePath = xmlFilePath;
         string name = Path.GetFileNameWithoutExtension( _xmlFilePath );
-        CurrentXmlDocName = name;
+        _currentXmlDocName = name;
 
         if (string.IsNullOrEmpty( mainTableName ))
         {
@@ -100,8 +100,6 @@ public class SchemaGenerator
                 typeName: FbHelper.GetFbTypeFromXmlValue( attr.Value, attr.Name )
             );
         }
-
-
 
         if (node.ChildNodes.Count == 1 && node.FirstChild.NodeType == XmlNodeType.Text) // <id> 1234 </id>
         {
@@ -217,12 +215,12 @@ public class SchemaGenerator
     {
         string path = $"{node.ParentNode.LocalName}/{node.LocalName}";
 
-        return IsNodeAsArray( path );
+        return IsNodeAsArray( _currentXmlDocName, path );
     }
-    public static string CurrentXmlDocName = "";
-    public static bool IsNodeAsArray( string path )
+    private string _currentXmlDocName = "";
+    public static bool IsNodeAsArray(string curXmlDocName, string path )
     {
-        string domain = CurrentXmlDocName.ToLower();
+        string domain = curXmlDocName.ToLower();
         string lower = path.ToLower();
         if (lower.EndsWith( "item" ))
             return true;
@@ -303,24 +301,26 @@ public class SchemaGenerator
                 }
                 break;
             case "newactivityconfig":
-                {
-                    switch (lower)
-                    {
-                        case "activity/tabs":
-                            return true;
-                    }
-                }
-                break;
+            case "newactivityconfig1":
             case "newactivityconfig2":
+            case "newactivityconfig3":
+            case "newactivityconfig4":
+            case "newactivityconfig5":
                 {
                     switch (lower)
                     {
-                        case "activity/items":
+                        case "fullactivitycenter/firstmenu":
+                        case "secondmenu/activity":
+                        case "activity/passitems":
+                        case "activity/tabs":
                         case "activity/showitems":
+                        case "activity/items":
                             return true;
                     }
                 }
                 break;
+        
+     
             case "pvzartseasonconfig":
                 {
                     switch (lower)

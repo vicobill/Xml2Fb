@@ -10,6 +10,7 @@ namespace Xml2Fb
 {
     public class MyXmlNodeConverter : XmlNodeConverter
     {
+        public string CurrentXmlDocName = "";
         public override bool CanRead => base.CanRead;
 
         public override bool CanWrite => base.CanWrite;
@@ -47,7 +48,7 @@ namespace Xml2Fb
         protected override bool IsNodeAsArray( string nodeNamePath )
         {
             string lower = nodeNamePath.ToLower();
-            if (SchemaGenerator.IsNodeAsArray( nodeNamePath ))
+            if (SchemaGenerator.IsNodeAsArray( CurrentXmlDocName, nodeNamePath ))
                 return true;
             
             return base.IsNodeAsArray( nodeNamePath );
