@@ -125,6 +125,8 @@ public static class FbScalarType
             _ => 0
         };
     }
+    public static bool IsUnsignedTypeName( this string typeName )
+        => typeName[0] == 'u';
 
 
     public static bool IsStringTypeName( this string typeName )
@@ -151,8 +153,16 @@ public static class FbScalarType
             return true;
 
 
-        if (ByteSizeOfTypeName( typeName ) > ByteSizeOfTypeName( otherTypeName ))
+        int sizeA = ByteSizeOfTypeName( typeName );
+        int sizeB = ByteSizeOfTypeName( otherTypeName );
+        if (sizeA > sizeB)
             return true;
+
+        // 同类型，unsigned > signed
+        if ( sizeA == sizeB  &&
+            typeName.IsUnsignedTypeName() && !otherTypeName.IsUnsignedTypeName())
+            return true;
+
 
         return false;
     }
