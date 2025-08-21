@@ -174,9 +174,11 @@ async Task ProcessGroupXmlFiles_Develop( Dictionary<string, List<string>> groups
         Dictionary<string, string> jsonFiles = new Dictionary<string, string>();
         List<FbSchema> fbSchemas = new List<FbSchema>();
         string finalFbsFile = GetManualFinalFbsFilepath( mainName, conf )!;
-        bool isGenFbs = string.IsNullOrEmpty( finalFbsFile ); 
+        bool isGenFbs = string.IsNullOrEmpty( finalFbsFile );
 
-        foreach (string xmlFile in group.Value)
+        var sorted = group.Value.Order().ToList();
+
+        foreach (string xmlFile in sorted)
         {
             string fileName = Path.GetFileNameWithoutExtension( xmlFile );
             string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
