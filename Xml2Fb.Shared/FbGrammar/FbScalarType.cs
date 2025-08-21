@@ -193,5 +193,5 @@ public static class FbScalarType
     /// <param name="typeName"></param>
     /// <returns></returns>
     public static string ConsVectorFieldName( string typeName )
-        => $"{typeName}s".ToLower();
+        => $"{typeName}_arr".ToFieldName();
 }

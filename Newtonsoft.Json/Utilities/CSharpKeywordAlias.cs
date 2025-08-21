@@ -48,5 +48,10 @@ namespace Newtonsoft.Json.Utilities
                 return s.Replace( "_alias", "" );
             return s;
         }
+
+        public static string DeAliasArr(this string s )
+        {
+            return $"{DeAlias( s )}_arr";
+        }
     }
 }

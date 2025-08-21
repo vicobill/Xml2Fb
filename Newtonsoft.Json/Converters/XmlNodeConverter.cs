@@ -39,6 +39,7 @@ using System.Xml.Linq;
 using Newtonsoft.Json.Utilities;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
+ 
 
 namespace Newtonsoft.Json.Converters
 {
@@ -1081,8 +1082,9 @@ namespace Newtonsoft.Json.Converters
                 ret = XmlConvert.DecodeName(node.LocalName)!;
             }
 
-            ret = StringUtils.ToCamelCase( ret ).Replace('-','_').ToLower();
-            
+            ret = StringUtils.Codize( ret );
+            ret = StringUtils.ToSnakeCase( ret );
+
             return ret;
         }
 
@@ -1268,7 +1270,7 @@ namespace Newtonsoft.Json.Converters
             {
                 if (writePropertyName)
                 {
-                    writer.WritePropertyName($"{elementNames.DeAlias()}s");
+                    writer.WritePropertyName($"{elementNames.DeAliasArr()}");
                 }
 
                 writer.WriteStartArray();
@@ -1294,7 +1296,7 @@ namespace Newtonsoft.Json.Converters
             {
                 if (writePropertyName)
                 {
-                    writer.WritePropertyName($"{elementNames.DeAlias()}s");
+                    writer.WritePropertyName($"{elementNames.DeAliasArr()}");
                 }
 
                 writer.WriteStartArray();

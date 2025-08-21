@@ -65,84 +65,9 @@ namespace Xml2Fb.Shared
             return span.ToString();
         }
 
-        /// <summary>
-        /// 去掉空白字符串、将'-'转成'_'， 用于合规代码命名
-        /// </summary>
-        /// <param name="s"></param>
-        /// <returns></returns>
-        public static string Codize( this string s )
-        {
-            StringBuilder sb = new StringBuilder();
-            foreach (char c in s)
-            {
-                if (char.IsWhiteSpace( c ))
-                { continue; }
-                if (c == '-')
-                {
-                    sb.Append( '_' );
-                    continue;
-                }
-                sb.Append( c );
+       
 
-            }
-            return sb.ToString();
-        }
-
-        /// <summary>
-        /// 转成小写 snake_case
-        /// </summary>
-        /// <param name="s"></param>
-        /// <returns></returns>
-        public static string LowerSnakeCase( this string s )
-        {
-            Span<char> chars = s.ToCharArray();
-
-            // dbcTitle => dbc_title
-            // DbcTitle => dbc_title
-            // DBCTitle => dbc_title
-            StringBuilder sb = new StringBuilder();
-
-            for (int i = 0; i < chars.Length; ++i)
-            {
-                char ch = chars[i];
-
-
-                bool isLetter = char.IsLetter( ch );
-                if (!isLetter)
-                {
-                    sb.Append( ch );
-                    continue;
-                }
-                char l = char.ToLower( ch );
-                bool isUpper = char.IsUpper( ch );
-                bool isNextCharUpper = false;
-                bool isNextCharLetter = false;
-                if (i < chars.Length - 1)
-                {
-                    isNextCharUpper = char.IsUpper( chars[i + 1] );
-                    isNextCharLetter = char.IsLetter( chars[i + 1] );
-                }
-
-                if (isUpper && isNextCharUpper)
-                { sb.Append( l ); continue; }
-
-                if (isUpper && !isNextCharLetter)
-                { sb.Append( l ); continue; }
-
-                // Ti => _ti
-                // _Ti => _ti
-                if (isUpper && !isNextCharUpper)
-                {
-                    if (i != 0 && chars[i - 1] != '_')
-                        sb.Append( '_' );
-                    sb.Append( l );
-                    continue;
-                }
-
-                sb.Append( l );
-            }
-            return sb.ToString();
-        }
+        
 
         /// <summary>
         /// 将字符串转成字段名
@@ -153,14 +78,15 @@ namespace Xml2Fb.Shared
         {
 
             string ret = s.Replace( '-', '_' );// aBc_3z0
-            if (ret.IndexOf( '_' ) == -1)
-            {
-                ret = StringUtils.ToCamelCase( ret ).ToLower();
-            }
-            else
-            {
-                ret = ret.LowerCapital().ToLower();
-            }
+            ret = StringUtils.ToSnakeCase( ret );//.LowerSnakeCase();
+            //if (ret.IndexOf( '_' ) == -1)
+            //{
+            //    ret = StringUtils.ToCamelCase( ret ).ToLower();
+            //}
+            //else
+            //{
+            //    ret = ret.LowerCapital().ToLower();
+            //}
 
             return CSharpKeywordAlias.Alias( ret );
         }
@@ -171,7 +97,7 @@ namespace Xml2Fb.Shared
         /// <param name="s"></param>
         /// <returns></returns>
         public static string ToTableName( this string s )
-            => s.Codize().Capitalize();
+            => StringUtils.Codize( s ).Capitalize();
 
         public static string UpperCamelCase( this string s )
         {

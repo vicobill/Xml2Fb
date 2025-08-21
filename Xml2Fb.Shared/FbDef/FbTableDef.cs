@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -18,7 +19,7 @@ namespace Xml2Fb.Shared.FbDef
 
         public FbTableDef(string tableName,bool isVectorElement)
         {
-            Name = tableName.Codize().Capitalize();
+            Name = StringUtils.Codize(tableName).Capitalize();
             //this.stringBuilder = new StringBuilder();
             FieldsStack = new Queue<FbFieldDef>();
             IsVectorElement = isVectorElement;
@@ -47,13 +48,13 @@ namespace Xml2Fb.Shared.FbDef
 
         static void GenTableVarHeader(StringBuilder sb, FbTableDef tableDef, int n )
         {
-            string varname = tableDef.Name.LowerSnakeCase();
+            string varname = StringUtils.ToSnakeCase( tableDef.Name );//.LowerSnakeCase();
             string name = tableDef.Name;
             sb.AppendLine( $"Offset<{name}> {varname}_{n};" );
         }
         static void GenTableVarFooter(StringBuilder sb, FbTableDef tableDef, int n,params string[] argNames)
         {
-            string varname = tableDef.Name.LowerSnakeCase();
+            string varname = StringUtils.ToSnakeCase( tableDef.Name );//.LowerSnakeCase();
             string name = tableDef.Name;
             sb.Append( $"{varname}_{n} = {name}.Create{name}(builder," );
             for (int i = 0; i < argNames.Length; i++)

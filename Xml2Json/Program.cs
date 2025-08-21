@@ -2,6 +2,7 @@ using CommandLine;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Utilities;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -369,44 +370,69 @@ string get_json_to_fbin_cmd( string fileName, Conf conf, string? mainFbsName = n
 }
 
 
+
+async Task RunCmdAsync( string exe, string argLine )
+{
+    DebugHelper.Print( $"run `{exe} {argLine}` ({SourceInfo.File()}#{SourceInfo.Line()})" );
+    var cts = new CancellationTokenSource( TimeSpan.FromSeconds( 30 ) );
+    var psi = new ProcessStartInfo
+    {
+        FileName = exe,
+        UseShellExecute = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        RedirectStandardInput = true,
+        Arguments = argLine,
+        
+    };
+    using var process = Process.Start( psi );
+
+    process.ErrorDataReceived += (s,e ) => DebugHelper.PrintError( e.Data );
+    process.OutputDataReceived += ( s, e ) => DebugHelper.Print( e.Data );
+    // 必须处理输出（即使你不关心内容）
+    var outputTask = process.StandardOutput.ReadToEndAsync();
+    var errorTask = process.StandardError.ReadToEndAsync();
+
+    DebugHelper.Print( "start..." );
+
+    process.Start();
+
+    try
+    {
+        await process.WaitForExitAsync( cts.Token );
+        // 确保完全读取输出
+        var buffer = await Task.WhenAll( outputTask, errorTask );
+        if (buffer != null)
+        {
+            if (!string.IsNullOrEmpty( buffer[0] ))
+                DebugHelper.Print( buffer[0] );
+            if (!string.IsNullOrEmpty( buffer[1] ))
+                DebugHelper.PrintError( buffer[1] );
+        }
+    }
+    catch (OperationCanceledException)
+    {
+        // 超时处理
+        if (!process.HasExited)
+        {
+            process.Kill( entireProcessTree: true ); // 关键参数！
+            await Task.Delay( 1000 ); // 等待实际终止
+        }
+        DebugHelper.PrintError( "Process is timeout, now cancel!" );
+    }
+
+
+
+}
+
+
 ///<summary> 解析json文件，按照对应的fbs文件，生成对应的二进制数据文件 </summary>
 async Task FlatcJsonToBin( string fileName, Conf conf, string? mainFbsName = null )
 {
-    DebugHelper.PrintDebug( $"json->fbin: {fileName} ..." );
-    Process process = new Process();
-    process.StartInfo.FileName = conf.GetFlatc();
-    process.StartInfo.RedirectStandardError = true;
-    process.StartInfo.RedirectStandardOutput = true;
-    process.StartInfo.CreateNoWindow = true;
-    process.StartInfo.UseShellExecute = false;
-    process.StartInfo.Arguments = get_json_to_fbin_cmd( fileName, conf, mainFbsName );
+    DebugHelper.PrintDebug( $"json->fbin: {fileName} ... ({SourceInfo.File()}#{SourceInfo.Line()})" );
 
-    process.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[Json2Bin] {fileName} {e.Data}" );
-    process.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[Json2Bin] {fileName} {e.Data}" );
-    //DebugHelper.Print( $"[Json2Bin] 执行flatc json2bin {fileName}.json" );
-    process.Start();
-
-    // 读取标准输出
-    string output = process.StandardOutput.ReadToEnd();
-    // 读取错误输出
-    string error = process.StandardError.ReadToEnd();
-
-    await process.WaitForExitAsync(); // 等待命令执行完成
-
-    // 打印结果
-    //Console.WriteLine( "标准输出:" );
-    //Console.WriteLine( output );
-
-    if (!string.IsNullOrEmpty( error ))
-    {
-        DebugHelper.PrintError( $"Error: {error}" );
-    }
-
-    //Console.WriteLine( $"\n退出代码: {process.ExitCode}" );
-
-
-
-
+    string argLine = get_json_to_fbin_cmd( fileName, conf, mainFbsName );
+    await RunCmdAsync( conf.GetFlatc(), argLine );
 }
 
 string get_fbin_to_json_cmd( string fileName, Conf conf, string? mainFbsName = null )
@@ -418,34 +444,8 @@ string get_fbin_to_json_cmd( string fileName, Conf conf, string? mainFbsName = n
 ///<summary> 将fbin文件，按照对应fbs文件，生成为json文件 </summary>
 async Task FlatcBinToJson( string fileName, Conf conf, string? mainFbsName = null )
 {
-    Process process = new Process();
-    process.StartInfo.FileName = conf.GetFlatc();
-    process.StartInfo.RedirectStandardError = true;
-    process.StartInfo.RedirectStandardOutput = true;
-    process.StartInfo.CreateNoWindow = false;
-    process.StartInfo.UseShellExecute = false;
-    process.StartInfo.Arguments = get_fbin_to_json_cmd( fileName, conf, mainFbsName );
-
-    process.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[Bin2Json] {fileName} {e.Data}" );
-    process.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[Bin2Json] {fileName} {e.Data}" );
-    //DebugHelper.Print( $"[Json2Bin] 执行flatc json2bin {fileName}.json" );
-    process.Start();
-
-    // 读取标准输出
-    string output = process.StandardOutput.ReadToEnd();
-    // 读取错误输出
-    string error = process.StandardError.ReadToEnd();
-
-    await process.WaitForExitAsync(); // 等待命令执行完成
-
-    // 打印结果
-    //Console.WriteLine( "标准输出:" );
-    //Console.WriteLine( output );
-
-    if (!string.IsNullOrEmpty( error ))
-    {
-        DebugHelper.PrintError( $"Error: {error}" );
-    }
+    string argLine = get_fbin_to_json_cmd( fileName, conf, mainFbsName );
+    await RunCmdAsync( conf.GetFlatc(), argLine );
 }
 
 ///<summary> 生成fbs文件对应的C#代码 </summary>
@@ -467,29 +467,9 @@ async Task FlatcGenFbsIncCsharpCode( Conf conf )
     var fbsList = Directory.GetFiles( conf.GetFbsIncDir(), "*.fbs" );
     foreach (var fbsFile in fbsList)
     {
-
-        DebugHelper.PrintDebug( $"[GenC#] process fbs file:{fbsFile}" );
-        Process process = new Process();
-        process.StartInfo.FileName = conf.GetFlatc();
-        process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.Arguments = get_gen_cs_cmd( conf, fbsFile );
-
-        process.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[GenC#] {fbsFile} {e.Data}" );
-        process.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[GenC#] {fbsFile} {e.Data}" );
-        process.Start();
-
-        await process.WaitForExitAsync(); // 等待命令执行完成
-
-        string stdout = await process.StandardOutput.ReadToEndAsync();
-
-        string stderr = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        if (!string.IsNullOrEmpty( stdout ))
-            DebugHelper.PrintWarning( stdout );
-        if (!string.IsNullOrEmpty( stderr ))
-            DebugHelper.PrintError( stderr );
+        DebugHelper.PrintDebug( $"[GenC#] process fbs file:{fbsFile}({SourceInfo.File()}#{SourceInfo.Line()})" );
+        string argLine = get_gen_cs_cmd( conf, fbsFile );
+        await RunCmdAsync( conf.GetFlatc(), argLine );
 
         CopyCsharpToUnityTargetDir( fbsFile, conf );
     }
@@ -498,26 +478,10 @@ async Task FlatcGenFbsIncCsharpCode( Conf conf )
 ///<summary> 生成 fbs文件对应的csharp代码 </summary>
 async Task FlatcGenCsharpCode( string fbsFile, Conf conf )
 {
-    DebugHelper.PrintDebug( $"[GenC#] process :{fbsFile}" );
-    Process ps = new Process();
-    ps.StartInfo.FileName = conf.GetFlatc();
-    ps.StartInfo.RedirectStandardError = true;
-    ps.StartInfo.RedirectStandardOutput = true;
-    ps.StartInfo.UseShellExecute = false;
-    ps.StartInfo.Arguments = get_gen_cs_cmd( conf, fbsFile );
 
-    ps.OutputDataReceived += ( s, e ) => DebugHelper.PrintWarning( $"[GenC#] {fbsFile} {e.Data}" );
-    ps.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( $"[GenC#] {fbsFile} {e.Data}" );
-    ps.Start();
-    await ps.WaitForExitAsync();
-
-
-    string stdout = await ps.StandardOutput.ReadToEndAsync();
-    if (!string.IsNullOrEmpty( stdout ))
-        DebugHelper.PrintWarning( stdout );
-    string stderr = await ps.StandardError.ReadToEndAsync();
-    if (!string.IsNullOrEmpty( stderr ))
-        DebugHelper.PrintError( stderr );
+    DebugHelper.PrintDebug( $"[GenC#] process :{fbsFile} ({SourceInfo.File()}#{SourceInfo.Line()})" );
+    string argline = get_gen_cs_cmd( conf, fbsFile );
+    await RunCmdAsync( conf.GetFlatc(), argline );
 
 }
 
@@ -543,12 +507,13 @@ void SaveJsonAsync( XmlDocument doc, string jsonFile )
     //DebugHelper.Print( $"处理文件 {jsonFile}" );
     string name = Path.GetFileNameWithoutExtension( jsonFile );
 
-    XmlNodeConverter converter = new MyXmlNodeConverter {
+    XmlNodeConverter converter = new MyXmlNodeConverter
+    {
         OmitRootObject = false,
         WriteArrayAttribute = true,
         CurrentXmlDocName = name,
     };
-    
+
     var settings = new JsonSerializerSettings
     {
         Converters = new List<JsonConverter> { converter },
@@ -566,7 +531,7 @@ void SaveJsonAsync( XmlDocument doc, string jsonFile )
     string json = jobj.ToString();
     string ret = Regex.Replace( json, @"@(\w+)", ( m ) =>
      {
-         return m.Groups[1].Value.Codize();
+         return StringUtils.Codize( m.Groups[1].Value );
      }, RegexOptions.Multiline );
 
     File.WriteAllText( jsonFile, ret );
