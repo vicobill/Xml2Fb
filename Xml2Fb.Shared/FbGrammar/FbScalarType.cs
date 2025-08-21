@@ -121,6 +121,7 @@ public static class FbScalarType
             "short" or "ushort" or "int16" or "uint16" => 2,
             "int" or "uint" or "int32" or "uint32" or "float" or "float32" => 4,
             "long" or "ulong" or "int64" or "uint64" or "double" or "float64" => 8,
+            "string" => 12,
             _ => 0
         };
     }

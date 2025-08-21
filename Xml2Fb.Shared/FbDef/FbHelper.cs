@@ -16,10 +16,17 @@ namespace Xml2Fb.Shared.FbDef
         /// <returns></returns>
         public static string GetFbTypeFromXmlValue( string xmlValue, string xmlNodeName )
         {
-            bool hasSep = ( xmlValue.IndexOfAny( anyOfSeps ) ) != -1;
-            if (hasSep)
+            string s = xmlValue.Trim();
+            if (s.Length == 0)
                 return "string";
 
+            if (s.HasChineseChars())
+                return "string";
+            
+            bool hasSep = ( s.IndexOfAny( anyOfSeps ) ) != -1;
+            if (hasSep)
+                return "string";
+ 
             switch (xmlNodeName.ToLower())
             {
                 case "name":
@@ -30,22 +37,22 @@ namespace Xml2Fb.Shared.FbDef
             }
 
 
-            if (int.TryParse( xmlValue, out _ )) {return "int";}
-            if (uint.TryParse( xmlValue, out _ )) {return "uint";}
+            if (int.TryParse( s, out _ )) {return "int";}
+            if (uint.TryParse( s, out _ )) {return "uint";}
 
-            if (long.TryParse( xmlValue, out _ )) { return "long"; }
-            if (ulong.TryParse( xmlValue, out _ )) { return "ulong"; }
+            if (long.TryParse( s, out _ )) { return "long"; }
+            if (ulong.TryParse( s, out _ )) { return "ulong"; }
 
-            if (float.TryParse( xmlValue, out _ )){  return "float"; }
-            if (double.TryParse( xmlValue, out _ )) {  return "double"; }
+            if (float.TryParse( s, out _ )){  return "float"; }
+            if (double.TryParse( s, out _ )) {  return "double"; }
 
-            if (short.TryParse( xmlValue, out _ )) { return "short"; }
-            if (ushort.TryParse( xmlValue, out _ )) { return "ushort"; }
+            if (short.TryParse( s, out _ )) { return "short"; }
+            if (ushort.TryParse( s, out _ )) { return "ushort"; }
 
-            if (sbyte.TryParse( xmlValue, out _)) { return "byte"; }
-            if (byte.TryParse( xmlValue, out _ )){ return "ubyte"; }
+            if (sbyte.TryParse( s, out _)) { return "byte"; }
+            if (byte.TryParse( s, out _ )){ return "ubyte"; }
 
-            if (bool.TryParse( xmlValue, out _ )) { return "bool";}
+            if (bool.TryParse( s, out _ )) { return "bool";}
 
             return "string";
         }

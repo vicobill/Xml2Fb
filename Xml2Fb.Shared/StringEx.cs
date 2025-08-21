@@ -207,5 +207,17 @@ namespace Xml2Fb.Shared
 
             return sb.ToString();
         }
+
+        public static bool HasChineseChars( this string s )
+        {
+            foreach(char c in s)
+            {
+                if (c >= 0x4e00 && c <= 0x9fbb)
+                    return true;
+            }
+            return false;
+        }
+
+
     }
 }

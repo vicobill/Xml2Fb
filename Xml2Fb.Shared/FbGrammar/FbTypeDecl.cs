@@ -27,9 +27,9 @@ public class FbTypeDecl
         {
             if (has.typeName != typeName)
             {
-                DebugHelper.PrintWarning( $"type: {typeName} already had field `{fieldName}`，origin type:{has.typeName}, current type:{typeName}!" );
                 if (typeName.PriorThen( has.typeName ))
                 {
+                    DebugHelper.PrintWarning( $"field `{fieldName}`, has type `{has.typeName}`, change to:`{typeName}`" );
                     has.typeName = typeName;
                 }
             }
