@@ -288,8 +288,7 @@ string SaveFbSchema( FbSchema schema, string mainName, Conf conf )
 
 string? GetManualFinalFbsFilepath( string mainName, Conf conf )
 {
-    //TODO: 通过配置文件中指定匹配名称的Fbs文件，返回此值
-    if (conf.FindManualFbsFile( mainName, out string path ))
+    if (conf.FindManualFbsFile( mainName, out string? path ))
         return path;
     return null;
 }
