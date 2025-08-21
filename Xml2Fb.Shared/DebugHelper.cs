@@ -40,6 +40,13 @@ namespace Xml2Fb.Shared
                 .Println( "ERROR", msg );
             
         }
+        public static void PrintDanger( string msg )
+        {
+            using ScopeConColor scc = new ScopeConColor();
+            scc.SetForegroundColor( ConsoleColor.Red )
+                .Println( "DANGER", msg );
+
+        }
         public static void PrintWarning( string msg )
         {
             using ScopeConColor scc = new ScopeConColor();
