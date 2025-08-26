@@ -38,12 +38,14 @@ try
         } );
 
 
+
     Conf? conf = LoadConf( confFile );
     if (conf == null)
     {
         DebugHelper.PrintError( "Not Specific `xml2fb.json`" );
         return;
     }
+    DebugHelper.logLevel = (DebugHelper.ELogLevel)conf.xml2fb.loglevel;
     bool _is_start = false;
     conf.isStart = _is_start;
     conf.isDeployMode = isDeployMode;
@@ -63,21 +65,24 @@ try
             new EnumerationOptions { RecurseSubdirectories = conf.xml2fb.isrec }
         ).Where( x => conf.InWhitelist( x ) ).ToList();
 
+    bool isgrouped = GroupSubXmlFiles( xmlFiles, out Dictionary<string, List<string>>? groups, out List<string>? scatterXmlFiles );
+
     if (!isDeployMode)
     {
 
         DebugHelper.Print( "----------------- Run in Develop Mode -----------------" );
         DebugHelper.Print( "-------------------------------------------------------" );
 
-        bool isgrouped = GroupSubXmlFiles( xmlFiles, out Dictionary<string, List<string>>? groups, out List<string>? scatterXmlFiles );
         if (!isgrouped)
         {
-            await ProcessScatterXmlFiles_Develop( xmlFiles, conf );
+            ProcessScatterXmlFiles_Develop( xmlFiles, conf );
+            DebugHelper.PrintOk( "DONE!" );
         }
         else
         {
-            await ProcessGroupXmlFiles_Develop( groups!, conf );
-            await ProcessScatterXmlFiles_Develop( scatterXmlFiles, conf );
+            ProcessGroupXmlFiles_Develop( groups!, conf );
+            ProcessScatterXmlFiles_Develop( scatterXmlFiles, conf );
+            DebugHelper.PrintOk( "DONE Scatter xmls!" );
         }
     }
 
@@ -86,8 +91,16 @@ try
         DebugHelper.Print( "----------------- Run in Deply Mode -----------------" );
         DebugHelper.Print( " only copy *.xml as *.bytes (fbin) for Unity Bundle " );
         DebugHelper.Print( "-------------------------------------------------------" );
-
-        await ProcessScatterXmlFiles_Deploy( xmlFiles, conf );
+        if (!isgrouped)
+        {
+            ProcessScatterXmlFiles_Deploy( xmlFiles, conf );
+        }
+        else
+        {
+            ProcessGroupXmlFiles_Deploy( groups!, conf );
+            ProcessScatterXmlFiles_Deploy( scatterXmlFiles, conf );
+            DebugHelper.PrintOk( "DONE Scatter xmls!" );
+        }
     }
 }
 catch (Exception ex)
@@ -95,70 +108,106 @@ catch (Exception ex)
     DebugHelper.PrintError( ex.Message );
 }
 
-async Task ProcessScatterXmlFiles_Develop( List<string> scatterXmlFiles, Conf conf )
+void ProcessScatterXmlFiles_Develop( List<string> scatterXmlFiles, Conf conf )
 {
-    //foreach (var xmlFile in scatterXmlFiles)
-    Parallel.ForEach( scatterXmlFiles, async (xmlFile) =>
+    Parallel.ForEach( scatterXmlFiles, ( xmlFile ) =>
     {
         string fileName = Path.GetFileNameWithoutExtension( xmlFile );
         string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
         string fbsFile = Path.Combine( conf.GetFbsDir(), $"{fileName}.fbs" );
 
         DebugHelper.Print( $"Process Xml file: {fileName}.xml" );
+
         XmlDocument doc = LoadXml( xmlFile );
-        SaveJsonAsync( doc, jsonFile );
+        SaveXmlToJson( doc, jsonFile );
         GenFbSchema( doc, xmlFile, conf );
 
 
         // 生成各个fbs对应的C#代码
-        await FlatcGenFbsIncCsharpCode( conf );
+        List<Task> tasks = new List<Task>();
+        Task.Run( async () =>
+        {
+            await FlatcGenFbsIncCsharpCode( conf );
 
-        await FlatcGenCsharpCode( fbsFile, conf );
-        CopyCsharpToUnityTargetDir( fbsFile, conf );
+            await FlatcGenCsharpCode( fbsFile, conf );
+            CopyCsharpToUnityTargetDir( fbsFile, conf );
 
-        await FlatcJsonToBin( fileName, conf );
-        CopyBinToDevTargetDir( fileName, conf );
-        await FlatcBinToJson( fileName, conf );
-        DebugHelper.PrintOk( $"Done Xml file {fileName}.xml !" );
+            await FlatcJsonToBin( fileName, conf );
+            CopyBinToDevTargetDir( fileName, conf );
+            await FlatcBinToJson( fileName, conf );
+        } ).Wait();
+
+        DebugHelper.PrintOk( $"DONE Xml file {fileName}.xml !" );
 
     } );
 }
 /* 发布模式下，拷贝xml为fbin，放置在目标目录下
  * 不处理csharp */
-async Task ProcessScatterXmlFiles_Deploy( List<string> scatterXmlFiles, Conf conf )
+void ProcessScatterXmlFiles_Deploy( List<string> scatterXmlFiles, Conf conf )
 {
-    foreach (var xmlFile in scatterXmlFiles)
+    Parallel.ForEach( scatterXmlFiles, ( xmlFile ) =>
     {
         string fileName = Path.GetFileNameWithoutExtension( xmlFile );
         string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
         string fbsFile = Path.Combine( conf.GetFbsDir(), $"{fileName}.fbs" );
 
-
         DebugHelper.Print( $"Process Xml file: {fileName}" );
+
         XmlDocument doc = LoadXml( xmlFile );
-        SaveJsonAsync( doc, jsonFile );
+        SaveXmlToJson( doc, jsonFile );
         GenFbSchema( doc, xmlFile, conf );
-
-        //await FlatcGenFbsIncCsharpCode( conf );
-
-
-        //FlatcGenCsharpCode( fbsFile, conf );
-        await FlatcJsonToBin( fileName, conf );
-        //FlatcBinToJson( fileName, conf );
+        FlatcJsonToBin( fileName, conf ).Wait();
         CopyBinToDeployTargetDir( fileName, conf );
-        DebugHelper.PrintOk( $"Done Xml file: {fileName} !" );
 
-
-
-
-    }
+        DebugHelper.PrintOk( $"DONE Xml file: {fileName} !" );
+    } );
 }
 
-
-async Task ProcessGroupXmlFiles_Develop( Dictionary<string, List<string>> groups, Conf conf )
+void ProcessGroupXmlFiles_Deploy( Dictionary<string, List<string>> groups, Conf conf )
 {
-    //foreach (var group in groups)
-    Parallel.ForEach( groups, async ( group ) =>
+
+    Parallel.ForEach( groups, ( group ) =>
+    {
+        string mainName = group.Key;
+
+        Dictionary<string, string> jsonFiles = new Dictionary<string, string>();
+        //List<FbSchema> fbSchemas = new List<FbSchema>();
+        string finalFbsFile = GetManualFinalFbsFilepath( mainName, conf )!;
+        bool isGenFbs = string.IsNullOrEmpty( finalFbsFile );
+        if (isGenFbs)
+        {
+            DebugHelper.PrintError( "Must set `use_custom_fbs` in config under Deploy Mode.EXIT NOW!" );
+            return;
+        }
+
+        var sorted = group.Value.Order().ToList();
+
+        foreach (string xmlFile in sorted)
+        {
+            string fileName = Path.GetFileNameWithoutExtension( xmlFile );
+            string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
+
+            XmlDocument doc = LoadXml( xmlFile );
+            SaveXmlToJson( doc, jsonFile );
+
+            jsonFiles.Add( fileName, jsonFile );
+        }
+
+        List<Task> tasks = new List<Task>();
+        foreach (var kv in jsonFiles)
+        {
+            string fileName = kv.Key;
+            tasks.Add( Json2BinAndCopy_Deploy_Async( fileName, conf, mainName ) );
+        }
+        Task.WaitAll( tasks );
+
+        DebugHelper.PrintOk( $"DONE Grouped `{mainName}`" );
+    } );
+}
+
+void ProcessGroupXmlFiles_Develop( Dictionary<string, List<string>> groups, Conf conf )
+{
+    Parallel.ForEach( groups, ( group ) =>
     {
         string mainName = group.Key;
 
@@ -176,7 +225,7 @@ async Task ProcessGroupXmlFiles_Develop( Dictionary<string, List<string>> groups
             string jsonFile = Path.Combine( conf.GetJsonDir(), $"{fileName}.json" );
 
             XmlDocument doc = LoadXml( xmlFile );
-            SaveJsonAsync( doc, jsonFile );
+            SaveXmlToJson( doc, jsonFile );
 
             if (isGenFbs)
             {
@@ -201,17 +250,32 @@ async Task ProcessGroupXmlFiles_Develop( Dictionary<string, List<string>> groups
             finalFbsFile = SaveFbSchema( final_schema, mainName, conf );
         }
 
-        await FlatcGenCsharpCode( finalFbsFile, conf );
+        FlatcGenCsharpCode( finalFbsFile, conf ).Wait();
         CopyCsharpToUnityTargetDir( finalFbsFile, conf );
 
+        List<Task> tasks = new List<Task>();
         foreach (var kv in jsonFiles)
         {
             string fileName = kv.Key;
-            await FlatcJsonToBin( fileName, conf, mainName );
-            CopyBinToDevTargetDir( fileName, conf );
-            await FlatcBinToJson( fileName, conf, mainName );
+            tasks.Add( Json2BinAndCopy_Dev_Async( fileName, conf, mainName ) );
         }
+        Task.WaitAll( tasks );
+
+        DebugHelper.PrintOk( $"DONE Grouped `{mainName}`" );
     } );
+}
+
+async Task Json2BinAndCopy_Deploy_Async( string fileName, Conf conf, string mainName )
+{
+    await FlatcJsonToBin( fileName, conf, mainName );
+    CopyBinToDeployTargetDir( fileName, conf );
+}
+
+async Task Json2BinAndCopy_Dev_Async( string fileName, Conf conf, string mainName )
+{
+    await FlatcJsonToBin( fileName, conf, mainName );
+    CopyBinToDevTargetDir( fileName, conf );
+    await FlatcBinToJson( fileName, conf, mainName );
 }
 
 
@@ -294,7 +358,7 @@ void CopyCsharpToUnityTargetDir( string fbsFile, Conf conf )
         string cs = GetFbsGeneratedCsharpName( fbsFile );
         string src = $"{conf.GetCsharpDir()}/{cs}";
         string dst = $"{conf.GetUnityCsharpDir()}/{cs}";
-        DebugHelper.Print( $"copy `{cs}` to unity project `{conf.GetUnityCsharpDir()}` ..." );
+        DebugHelper.Print( $"[cs=>unity] copy `{cs}` to unity project `{conf.GetUnityCsharpDir()}` ..." );
         File.Copy( src, dst, true );
     }
     catch (Exception ex)
@@ -307,10 +371,10 @@ void CopyBinToDevTargetDir( string fileName, Conf conf )
 {
     try
     {
-
         string src = $"{conf.GetFbinDir()}/{fileName}.bin";
-        string dst = $"{conf.GetUnityDevFbinDir()}/{fileName}.bytes";
-        DebugHelper.Print( $"copy `{fileName}.bin` as `{fileName}.bytes` to directory: {conf.GetUnityDevFbinDir()}" );
+        string targetDir = conf.GetUnityDevFbinDir();
+        string dst = $"{targetDir}/{fileName}.bytes";
+        DebugHelper.Print( $"[bin->bytes] copy `{fileName}.bin` as `{fileName}.bytes` to directory: {targetDir}" );
         File.Copy( src, dst, true );
 
         // 如果同目录下存在同名xml文件，删除xml文件
@@ -332,7 +396,9 @@ void CopyBinToDeployTargetDir( string fileName, Conf conf )
     try
     {
         string src = $"{conf.GetFbinDir()}/{fileName}.bin";
-        string dst = $"{conf.GetUnityDeployFbinDir()}/{fileName}.bytes";
+        string targetDir = conf.GetUnityDeployFbinDir();
+        string dst = $"{targetDir}/{fileName}.bytes";
+        DebugHelper.Print( $"[bin->bytes] copy `{fileName}.bin` as `{fileName}.bytes` to directory: {targetDir}" );
         File.Copy( src, dst, true );
     }
     catch (Exception ex)
@@ -385,17 +451,15 @@ async Task RunCmdAsync( string exe, string argLine )
         RedirectStandardError = true,
         RedirectStandardInput = true,
         Arguments = argLine,
-        
-    };
-    using var process = Process.Start( psi );
 
-    process.ErrorDataReceived += (s,e ) => DebugHelper.PrintError( e.Data );
+    };
+    using var process = Process.Start( psi )!;
+
+    process.ErrorDataReceived += ( s, e ) => DebugHelper.PrintError( e.Data );
     process.OutputDataReceived += ( s, e ) => DebugHelper.Print( e.Data );
     // 必须处理输出（即使你不关心内容）
     var outputTask = process.StandardOutput.ReadToEndAsync();
     var errorTask = process.StandardError.ReadToEndAsync();
-
-    DebugHelper.Print( "start..." );
 
     process.Start();
 
@@ -431,7 +495,7 @@ async Task RunCmdAsync( string exe, string argLine )
 ///<summary> 解析json文件，按照对应的fbs文件，生成对应的二进制数据文件 </summary>
 async Task FlatcJsonToBin( string fileName, Conf conf, string? mainFbsName = null )
 {
-    DebugHelper.PrintDebug( $"json->fbin: {fileName} ... ({SourceInfo.File()}#{SourceInfo.Line()})" );
+    DebugHelper.Print( $"[json->fbin]: gen from {fileName}.json to {fileName}.bin ... ({SourceInfo.File()}#{SourceInfo.Line()})" );
 
     string argLine = get_json_to_fbin_cmd( fileName, conf, mainFbsName );
     await RunCmdAsync( conf.GetFlatc(), argLine );
@@ -453,7 +517,7 @@ async Task FlatcBinToJson( string fileName, Conf conf, string? mainFbsName = nul
 ///<summary> 生成fbs文件对应的C#代码 </summary>
 string get_gen_cs_cmd( Conf conf, string fbsFile )
 {
-    if (conf.xml2fb.isthin)
+    if (conf.xml2fb!.isthin)
         return $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --csharp {fbsFile} ";
     else
         return $"-o {conf.GetCsharpDir()} -I {conf.GetFbsIncDir()} --gen-onefile --gen-compare --gen-object-api --gen-nullable --cs-gen-json-serializer --csharp {fbsFile} ";
@@ -467,21 +531,20 @@ async Task FlatcGenFbsIncCsharpCode( Conf conf )
 
     conf.isStart = true;
     var fbsList = Directory.GetFiles( conf.GetFbsIncDir(), "*.fbs" );
-    foreach (var fbsFile in fbsList)
+    Parallel.ForEach( fbsList, fbsFile =>
     {
-        DebugHelper.PrintDebug( $"[GenC#] process fbs file:{fbsFile}({SourceInfo.File()}#{SourceInfo.Line()})" );
+        DebugHelper.Print( $"[Gen C#] process fbs file:{fbsFile}({SourceInfo.File()}#{SourceInfo.Line()})" );
         string argLine = get_gen_cs_cmd( conf, fbsFile );
-        await RunCmdAsync( conf.GetFlatc(), argLine );
+        RunCmdAsync( conf.GetFlatc(), argLine ).Wait();
 
         CopyCsharpToUnityTargetDir( fbsFile, conf );
-    }
+    } );
 }
 
 ///<summary> 生成 fbs文件对应的csharp代码 </summary>
 async Task FlatcGenCsharpCode( string fbsFile, Conf conf )
 {
-
-    DebugHelper.PrintDebug( $"[GenC#] process :{fbsFile} ({SourceInfo.File()}#{SourceInfo.Line()})" );
+    DebugHelper.Print( $"[Gen C#] process :{fbsFile} ({SourceInfo.File()}#{SourceInfo.Line()})" );
     string argline = get_gen_cs_cmd( conf, fbsFile );
     await RunCmdAsync( conf.GetFlatc(), argline );
 
@@ -504,7 +567,7 @@ XmlDocument LoadXml( string xmlFile )
     return doc;
 }
 
-void SaveJsonAsync( XmlDocument doc, string jsonFile )
+void SaveXmlToJson( XmlDocument doc, string jsonFile )
 {
     //DebugHelper.Print( $"处理文件 {jsonFile}" );
     string name = Path.GetFileNameWithoutExtension( jsonFile );

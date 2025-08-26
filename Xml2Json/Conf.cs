@@ -27,6 +27,7 @@ public class Conf
         public string flatc;
         public string csharpdir;
         public bool isthin;
+        public int loglevel;
         /// <summary>
         /// Config Beta, Config Local,Config Version等
         /// </summary>

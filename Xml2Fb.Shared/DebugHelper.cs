@@ -5,6 +5,16 @@ namespace Xml2Fb.Shared
 {
     public static class DebugHelper
     {
+        public enum ELogLevel
+        {
+            Verbose = 0, // ALL
+            INFO,
+            DEBUG,
+            WARN,
+            ERROR,
+            FATAL,
+        }
+        public static ELogLevel logLevel { get; set; }
         internal class ScopeConColor : IDisposable
         {
             internal ScopeConColor() { Console.ResetColor(); }
@@ -30,9 +40,18 @@ namespace Xml2Fb.Shared
 
         public static void PrintDebug( string msg )
         {
+            if (logLevel > ELogLevel.DEBUG)
+                return;
             using ScopeConColor scc = new ScopeConColor();
             scc.SetForegroundColor( ConsoleColor.Blue )
                 .Println( "DEBUG", msg );
+        }
+
+        public static void PrintAlways(string msg )
+        {
+            using ScopeConColor scc = new ScopeConColor();
+            scc.SetForegroundColor( ConsoleColor.Gray )
+                .Println( "INFO", msg );
         }
 
         public static void PrintError( string msg )
@@ -44,19 +63,25 @@ namespace Xml2Fb.Shared
         }
         public static void PrintDanger( string msg )
         {
+            if (logLevel > ELogLevel.DEBUG)
+                return;
             using ScopeConColor scc = new ScopeConColor();
-            scc.SetForegroundColor( ConsoleColor.Red )
+            scc.SetForegroundColor( ConsoleColor.DarkRed )
                 .Println( "DANGER", msg );
 
         }
         public static void PrintWarning( string msg )
         {
+            if (logLevel > ELogLevel.WARN)
+                return;
             using ScopeConColor scc = new ScopeConColor();
             scc.SetForegroundColor( ConsoleColor.Yellow )
                 .Println( "WARN", msg );
         }
         public static void Print( string msg )
         {
+            if (logLevel > ELogLevel.INFO)
+                return;
             using ScopeConColor scc = new ScopeConColor();
             scc.Println( "INFO", msg );
         }

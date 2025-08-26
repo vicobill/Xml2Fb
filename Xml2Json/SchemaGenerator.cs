@@ -310,6 +310,7 @@ public class SchemaGenerator
                     switch (lower)
                     {
                         case "fullactivitycenter/firstmenu":
+                        case "firstmenu/secondmenu":
                         case "secondmenu/activity":
                         case "activity/passitems":
                         case "activity/tabs":

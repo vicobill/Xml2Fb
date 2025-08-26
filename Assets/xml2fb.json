@@ -11,6 +11,7 @@
         "flatc": "bin/flatc.exe",
         "pkgname": "Config.FbBin",
         "isthin": true,
+		"loglevel": 0,
         "node_as_array": [
             {
                 "xml": "xml2excelforclient",
@@ -18,22 +19,9 @@
                     "item/starttime",
                     "item/endtime"
                 ]
-            },
-            {
-                "xml": "NewActivityConfig4",
-                "node_paths": [
-                    "fullactivitycenter",
-                    "fullactivitycenter/firstmenu",
-                    "firstmenu/secondmenu",
-                    "secondmenu/activity"
-                ]
             }
         ],
         "table_preset": [
-            {
-                "table": "ShopConfig\\d*_BallEquipment_Item",
-                "preset": "ShopConfig_BallEquipment_Item"
-            }
         ],
 		"group_xml":[
 			{ "main": "ShopConfig", "sub_names":["ShopConfig1", "ShopConfig2", "ShopConfig3", "ShopConfig4", "ShopConfig5"], "use_custom_fbs":null },
@@ -43,12 +31,9 @@
     "unity": {
         "basedir": "E:\\project\\my\\qqdzz_minigame",
         "whitelist": [
-			"ShopConfig",
-			"ShopConfig1",
-			"ShopConfig2",
-			"ShopConfig3",
-			"ShopConfig4",
-			"ShopConfig5"
+		"LanguageConfig",
+		"DBrushConfig",
+		"ShopConfig","ShopConfig1","ShopConfig2","ShopConfig3","ShopConfig4","ShopConfig5"
         ],
         "develop": {
             "csharpdir": "Assets/Script/Bob.Serialize/FlatBuffers/generated",

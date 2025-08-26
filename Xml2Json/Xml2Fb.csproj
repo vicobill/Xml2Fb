@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AotAssemblies>true</AotAssemblies>
-    <BaseOutputPath>E:\project\my-tools\Xml2FbSchemaGenerator\bin</BaseOutputPath>
+    <BaseOutputPath>bin</BaseOutputPath>
     <PublishAot>False</PublishAot>
     <IsAotCompatible>true</IsAotCompatible>
     <StripSymbols>true</StripSymbols>
