@@ -1,6 +1,7 @@
 import os
 import sys
 import shutil
+import re
 import multiprocessing as mp
 from tqdm import tqdm
 
@@ -10,11 +11,23 @@ def flatc():
     global CWD
     return f"{CWD}/bin/flatc.exe"
 def json_to_bin(fileName):
-    cmd=f"{flatc()} -o gen/bytes -I fbs-inc -b gen/fbs/{fileName}.fbs gen/json/{fileName}.json"
+    fbsName = fileName
+    p = re.compile(r"(\w+)(\d+)")
+    m = re.match(p, fileName)
+    if m is not None:
+        fbsName = m.group(1)
+    print(f"fbsName: {fbsName}, json fileName: {fileName}")
+    cmd=f"{flatc()} -o gen/bytes -I fbs-inc -b gen/fbs/{fbsName}.fbs gen/json/{fileName}.json"
     os.system(cmd)
 
 def bin_to_json(fileName):
-    cmd=f"{flatc()} -o gen/json/verify -I fbs-inc --natural-utf8 --raw-binary -t gen/fbs/{fileName}.fbs -- gen/bytes/{fileName}.bin"
+    fbsName = fileName
+    p = re.compile(r"(\w+)(\d+)")
+    m = re.match(p, fileName)
+    if m is not None:
+        fbsName = m.group(1)
+    print(f"fbsName: {fbsName}, fbin fileName: {fileName}")
+    cmd=f"{flatc()} -o gen/json/verify -I fbs-inc --natural-utf8 --raw-binary -t gen/fbs/{fbsName}.fbs -- gen/bytes/{fileName}.bin"
     os.system(cmd)
 
 
@@ -195,12 +208,12 @@ if __name__ == '__main__':
 # json_to_bin("ServerConfig_internal")
 # json_to_bin("SettlementConfig")
 # json_to_bin("ShareConfig")
-# json_to_bin("ShopConfig")
-# json_to_bin("ShopConfig1")
-# json_to_bin("ShopConfig2")
-# json_to_bin("ShopConfig3")
-# json_to_bin("ShopConfig4")
-# json_to_bin("ShopConfig5")
+json_to_bin("ShopConfig")
+json_to_bin("ShopConfig1")
+json_to_bin("ShopConfig2")
+json_to_bin("ShopConfig3")
+json_to_bin("ShopConfig4")
+json_to_bin("ShopConfig5")
 # json_to_bin("ShopExtraConfig")
 # json_to_bin("ShoppingMallConfig")
 # json_to_bin("ShopSettingConfig")

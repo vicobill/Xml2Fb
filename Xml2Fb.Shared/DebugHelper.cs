@@ -45,39 +45,24 @@ namespace Xml2Fb.Shared
             using ScopeConColor scc = new ScopeConColor();
             scc.SetForegroundColor( ConsoleColor.Blue )
                 .Println( "DEBUG", msg );
-        }
-
-        public static void PrintAlways(string msg )
-        {
-            using ScopeConColor scc = new ScopeConColor();
-            scc.SetForegroundColor( ConsoleColor.Gray )
-                .Println( "INFO", msg );
-        }
+        }   
 
         public static void PrintError( string msg )
         {
             using ScopeConColor scc = new ScopeConColor();
-            scc.SetForegroundColor( ConsoleColor.Red )
-                .Println( "ERROR", msg );
-
-        }
-        public static void PrintDanger( string msg )
-        {
-            if (logLevel > ELogLevel.DEBUG)
-                return;
-            using ScopeConColor scc = new ScopeConColor();
             scc.SetForegroundColor( ConsoleColor.DarkRed )
-                .Println( "DANGER", msg );
-
+                .Println( "ERROR", msg );
         }
+        
         public static void PrintWarning( string msg )
         {
             if (logLevel > ELogLevel.WARN)
                 return;
             using ScopeConColor scc = new ScopeConColor();
-            scc.SetForegroundColor( ConsoleColor.Yellow )
+            scc.SetForegroundColor( ConsoleColor.DarkYellow )
                 .Println( "WARN", msg );
         }
+
         public static void Print( string msg )
         {
             if (logLevel > ELogLevel.INFO)
@@ -93,7 +78,21 @@ namespace Xml2Fb.Shared
                 .Println( "OK", msg );
         }
 
+        public static void PrintDanger( string msg )
+        {
+            if (logLevel > ELogLevel.DEBUG)
+                return;
+            using ScopeConColor scc = new ScopeConColor();
+            scc.SetForegroundColor( ConsoleColor.Red )
+                .Println( "DANGER", msg );
 
+        }
+        public static void PrintAlways( string msg )
+        {
+            using ScopeConColor scc = new ScopeConColor();
+            scc.SetForegroundColor( ConsoleColor.Gray )
+                .Println( "INFO", msg );
+        }
 
     }
 

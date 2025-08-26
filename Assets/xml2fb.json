@@ -24,7 +24,7 @@
         "table_preset": [
         ],
 		"group_xml":[
-			{ "main": "ShopConfig", "sub_names":["ShopConfig1", "ShopConfig2", "ShopConfig3", "ShopConfig4", "ShopConfig5"], "use_custom_fbs":null },
+			{ "main": "ShopConfig", "sub_names":["BaseShopConfig","ShopConfig1", "ShopConfig2", "ShopConfig3", "ShopConfig4", "ShopConfig5"], "use_custom_fbs":null },
 			{ "main": "NewActivityConfig", "sub_names": ["NewActivityConfig1", "NewActivityConfig2","NewActivityConfig3","NewActivityConfig4","NewActivityConfig5"], "use_custom_fbs":null }
 		]
     },
@@ -33,7 +33,9 @@
         "whitelist": [
 		"LanguageConfig",
 		"DBrushConfig",
-		"ShopConfig","ShopConfig1","ShopConfig2","ShopConfig3","ShopConfig4","ShopConfig5"
+		"BaseShopConfig",
+		"ShopConfig","ShopConfig1","ShopConfig2","ShopConfig3","ShopConfig4","ShopConfig5",
+		"NewActivityConfig","NewActivityConfig1","NewActivityConfig2","NewActivityConfig3","NewActivityConfig4","NewActivityConfig5",
         ],
         "develop": {
             "csharpdir": "Assets/Script/Bob.Serialize/FlatBuffers/generated",

@@ -29,14 +29,26 @@ try
 {
     string confFile = "xml2fb.json";
     bool isDeployMode = false;
+    string logLevel = "debug";
 
     Parser.Default.ParseArguments<CmdOpts>( args )
         .WithParsed( opts =>
         {
             confFile = opts.Conf;
             isDeployMode = opts.Deploy;
+            logLevel = string.IsNullOrEmpty( opts.LogLevel ) ? "verbose" : opts.LogLevel.ToLower();
         } );
 
+    DebugHelper.logLevel = logLevel switch
+    {
+        "verbose" => DebugHelper.ELogLevel.Verbose,
+        "info" => DebugHelper.ELogLevel.INFO,
+        "debug" => DebugHelper.ELogLevel.DEBUG,
+        "warn" => DebugHelper.ELogLevel.WARN,
+        "error" => DebugHelper.ELogLevel.ERROR,
+        "fatal" => DebugHelper.ELogLevel.FATAL,
+        _ => DebugHelper.ELogLevel.Verbose
+    };
 
 
     Conf? conf = LoadConf( confFile );
@@ -45,7 +57,7 @@ try
         DebugHelper.PrintError( "Not Specific `xml2fb.json`" );
         return;
     }
-    DebugHelper.logLevel = (DebugHelper.ELogLevel)conf.xml2fb.loglevel;
+
     bool _is_start = false;
     conf.isStart = _is_start;
     conf.isDeployMode = isDeployMode;
@@ -65,7 +77,7 @@ try
             new EnumerationOptions { RecurseSubdirectories = conf.xml2fb.isrec }
         ).Where( x => conf.InWhitelist( x ) ).ToList();
 
-    bool isgrouped = GroupSubXmlFiles( xmlFiles, out Dictionary<string, List<string>>? groups, out List<string>? scatterXmlFiles );
+    bool isgrouped = GroupSubXmlFiles( xmlFiles, conf, out Dictionary<string, List<string>>? groups, out List<string>? scatterXmlFiles );
 
     if (!isDeployMode)
     {
@@ -127,7 +139,7 @@ void ProcessScatterXmlFiles_Develop( List<string> scatterXmlFiles, Conf conf )
         List<Task> tasks = new List<Task>();
         Task.Run( async () =>
         {
-            await FlatcGenFbsIncCsharpCode( conf );
+            FlatcGenFbsIncCsharpCode( conf );
 
             await FlatcGenCsharpCode( fbsFile, conf );
             CopyCsharpToUnityTargetDir( fbsFile, conf );
@@ -279,7 +291,40 @@ async Task Json2BinAndCopy_Dev_Async( string fileName, Conf conf, string mainNam
 }
 
 
-bool GroupSubXmlFiles( List<string> xmlFiles, out Dictionary<string, List<string>>? grouped, out List<string> scatterXmlFiles )
+bool is_file_in_group_xml( string fileName, Conf.Xml2FbConf xml2FbConf,
+    out bool isMain, out string? mainFileName, out List<string>? subNames
+    )
+{
+    isMain = false;
+    mainFileName = null;
+    subNames = null;
+    foreach (var e in xml2FbConf.group_xml)
+    {
+        if (fileName == e.main)
+        {
+            isMain = true;
+            mainFileName = fileName;
+            subNames = e.sub_names;
+            return true;
+        }
+        else
+        {
+            foreach (var sub in e.sub_names)
+            {
+                if (sub == fileName)
+                {
+                    isMain = false;
+                    mainFileName = e.main;
+                    subNames = e.sub_names;
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+bool GroupSubXmlFiles( List<string> xmlFiles, Conf conf, out Dictionary<string, List<string>>? grouped, out List<string> scatterXmlFiles )
 {
     grouped = null;
     scatterXmlFiles = new List<string>();
@@ -288,6 +333,39 @@ bool GroupSubXmlFiles( List<string> xmlFiles, out Dictionary<string, List<string
     {
         string xmlFile = xmlFiles[i];
         string fileName = Path.GetFileNameWithoutExtension( xmlFile );
+
+        if (is_file_in_group_xml( fileName, conf.xml2fb!,
+            out bool isMain, out string? mainFileName, out List<string> subNames ))
+        {
+            //append_file_to_group( fileName );
+            if (grouped == null)
+            {
+                grouped = new Dictionary<string, List<string>>();
+            }
+
+            if (!grouped.TryGetValue( mainFileName, out _ ))
+            {
+
+                grouped[mainFileName] = new List<string>();
+                foreach (var e in subNames)
+                {
+                    string path = xmlFiles.Find( x => Path.GetFileNameWithoutExtension( x ) == e );
+                    grouped[mainFileName].Add( path );
+                }
+
+            }
+
+            xmlFiles.RemoveAll( x => Path.GetFileNameWithoutExtension( x ) == mainFileName );
+            foreach (var e in subNames)
+            {
+                xmlFiles.RemoveAll( x => Path.GetFileNameWithoutExtension( x ) == e );
+            }
+            i--;
+            continue;
+        }
+
+
+        // 匹配 ShopConfig1..5
         Match m = Regex.Match( fileName, @"(\w+)(\d+)\b" ); // ShopConfig1, ... ShopConfig5
         if (m != null && m.Success)
         {
@@ -317,6 +395,7 @@ bool GroupSubXmlFiles( List<string> xmlFiles, out Dictionary<string, List<string
                 scatterXmlFiles.Remove( mainXmlFile );
             }
         }
+
         else
         {
             scatterXmlFiles.Add( xmlFile );
@@ -441,7 +520,7 @@ string get_json_to_fbin_cmd( string fileName, Conf conf, string? mainFbsName = n
 
 async Task RunCmdAsync( string exe, string argLine )
 {
-    DebugHelper.Print( $"run `{exe} {argLine}` ({SourceInfo.File()}#{SourceInfo.Line()})" );
+    DebugHelper.PrintDebug( $"run `{exe} {argLine}` ({SourceInfo.File()}#{SourceInfo.Line()})" );
     var cts = new CancellationTokenSource( TimeSpan.FromSeconds( 30 ) );
     var psi = new ProcessStartInfo
     {
@@ -524,7 +603,7 @@ string get_gen_cs_cmd( Conf conf, string fbsFile )
 }
 
 ///<summary> 遍历所有fbs文件，并生成对应的C#代码，然后拷贝到Unity工程目录下 </summary>
-async Task FlatcGenFbsIncCsharpCode( Conf conf )
+void FlatcGenFbsIncCsharpCode( Conf conf )
 {
     if (conf.isStart)
         return;
@@ -673,6 +752,9 @@ public class CmdOpts
     /// </summary>
     [Option( 'd', "deploy" )]
     public bool Deploy { get; set; }
+
+    [Option( 'l', "loglevel" )]
+    public string LogLevel { get; set; }
 
 }
 
