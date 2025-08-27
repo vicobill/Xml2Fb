@@ -60,13 +60,22 @@ try
 
     bool _is_start = false;
     conf.isStart = _is_start;
+    isDeployMode = true; // VCOB: test
     conf.isDeployMode = isDeployMode;
     Directory.SetCurrentDirectory( conf?.xml2fb?.workdir );
 
     /*
      非发布模式下，将生成的csharp,fbin拷贝到Unity项目目录
      */
-    string xmldir = conf.GetXmlDir().Standard();
+    string xmldir;
+    if (conf.isDeployMode)
+    {
+        xmldir = conf.GetUnityDeployXmlDir().Standard();
+    }
+    else
+    {
+        xmldir = conf.GetXmlDir().Standard();
+    }
     if (!Directory.Exists( xmldir ))
     {
         throw new DirectoryNotFoundException( $"{xmldir} not found!" );
@@ -82,8 +91,8 @@ try
     if (!isDeployMode)
     {
 
-        DebugHelper.Print( "----------------- Run in Develop Mode -----------------" );
-        DebugHelper.Print( "-------------------------------------------------------" );
+        DebugHelper.PrintAlways( "----------------- Run in Develop Mode -----------------" );
+        DebugHelper.PrintAlways( "-------------------------------------------------------" );
 
         if (!isgrouped)
         {
@@ -100,9 +109,9 @@ try
 
     else
     {
-        DebugHelper.Print( "----------------- Run in Deply Mode -----------------" );
-        DebugHelper.Print( " only copy *.xml as *.bytes (fbin) for Unity Bundle " );
-        DebugHelper.Print( "-------------------------------------------------------" );
+        DebugHelper.PrintAlways( "----------------- Run in Deply Mode -----------------" );
+        DebugHelper.PrintAlways( " only copy *.xml as *.bytes (fbin) for Unity Bundle " );
+        DebugHelper.PrintAlways( "-------------------------------------------------------" );
         if (!isgrouped)
         {
             ProcessScatterXmlFiles_Deploy( xmlFiles, conf );
@@ -183,13 +192,16 @@ void ProcessGroupXmlFiles_Deploy( Dictionary<string, List<string>> groups, Conf 
         string mainName = group.Key;
 
         Dictionary<string, string> jsonFiles = new Dictionary<string, string>();
-        //List<FbSchema> fbSchemas = new List<FbSchema>();
+        List<FbSchema> fbSchemas = new List<FbSchema>();
         string finalFbsFile = GetManualFinalFbsFilepath( mainName, conf )!;
         bool isGenFbs = string.IsNullOrEmpty( finalFbsFile );
         if (isGenFbs)
         {
-            DebugHelper.PrintError( "Must set `use_custom_fbs` in config under Deploy Mode.EXIT NOW!" );
-            return;
+            DebugHelper.PrintError( """
+                Must set `use_custom_fbs` in config under Deploy Mode for `group_xml`.
+                Or else, will generate fbs schema from xml files that maybe not match group parsing.
+                """
+                );
         }
 
         var sorted = group.Value.Order().ToList();
@@ -201,6 +213,13 @@ void ProcessGroupXmlFiles_Deploy( Dictionary<string, List<string>> groups, Conf 
 
             XmlDocument doc = LoadXml( xmlFile );
             SaveXmlToJson( doc, jsonFile );
+
+            if (isGenFbs)
+            {
+                FbSchema schema = GenerateSchema( doc, xmlFile, mainName, conf );
+                fbSchemas.Add( schema );
+            }
+
 
             jsonFiles.Add( fileName, jsonFile );
         }
@@ -223,7 +242,6 @@ void ProcessGroupXmlFiles_Develop( Dictionary<string, List<string>> groups, Conf
     {
         string mainName = group.Key;
 
-        List<XmlDocument> xmlDocuments = new List<XmlDocument>();
         Dictionary<string, string> jsonFiles = new Dictionary<string, string>();
         List<FbSchema> fbSchemas = new List<FbSchema>();
         string finalFbsFile = GetManualFinalFbsFilepath( mainName, conf )!;
@@ -245,7 +263,7 @@ void ProcessGroupXmlFiles_Develop( Dictionary<string, List<string>> groups, Conf
                 fbSchemas.Add( schema );
             }
 
-            xmlDocuments.Add( doc );
+     
             jsonFiles.Add( fileName, jsonFile );
         }
 
