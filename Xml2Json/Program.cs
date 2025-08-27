@@ -335,22 +335,26 @@ bool GroupSubXmlFiles( List<string> xmlFiles, Conf conf, out Dictionary<string, 
         string fileName = Path.GetFileNameWithoutExtension( xmlFile );
 
         if (is_file_in_group_xml( fileName, conf.xml2fb!,
-            out bool isMain, out string? mainFileName, out List<string> subNames ))
+            out bool isMain, out string? mainFileName, out List<string>? subNames ))
         {
             //append_file_to_group( fileName );
             if (grouped == null)
             {
                 grouped = new Dictionary<string, List<string>>();
             }
-
+            
             if (!grouped.TryGetValue( mainFileName, out _ ))
             {
-
                 grouped[mainFileName] = new List<string>();
+                string? mainPath = xmlFiles.Find( x => Path.GetFileNameWithoutExtension( x ) == mainFileName );
+                if (mainPath != null)
+                { grouped[mainFileName].Add( mainPath ); }
+
                 foreach (var e in subNames)
                 {
-                    string path = xmlFiles.Find( x => Path.GetFileNameWithoutExtension( x ) == e );
-                    grouped[mainFileName].Add( path );
+                    string? path = xmlFiles.Find( x => Path.GetFileNameWithoutExtension( x ) == e );
+                    if (path != null)
+                        grouped[mainFileName].Add( path );
                 }
 
             }
@@ -460,7 +464,7 @@ void CopyBinToDevTargetDir( string fileName, Conf conf )
         string xml = $"{conf.GetUnityDevFbinDir()}/{fileName}.xml";
         if (File.Exists( xml ))
         {
-            DebugHelper.PrintDanger( $"DELETE {xml}..." );
+            DebugHelper.PrintWarning( $"DELETE {xml}..." );
             File.Delete( xml );
         }
     }
